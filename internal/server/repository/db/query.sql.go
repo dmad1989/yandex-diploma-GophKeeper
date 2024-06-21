@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createUser = `-- name: CreateUser :one
@@ -25,4 +27,186 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (int32, 
 	var ID int32
 	err := row.Scan(&ID)
 	return ID, err
+}
+
+const deleteContent = `-- name: DeleteContent :exec
+DELETE FROM public."content"
+WHERE id = $1
+`
+
+func (q *Queries) DeleteContent(ctx context.Context, id int32) error {
+	_, err := q.db.Exec(ctx, deleteContent, id)
+	return err
+}
+
+const getAllUserContent = `-- name: GetAllUserContent :many
+select
+	id,	user_id, "type", "data",	meta
+from
+	public."content" c
+where
+    c.user_id = $1
+`
+
+func (q *Queries) GetAllUserContent(ctx context.Context, userID int32) ([]Content, error) {
+	rows, err := q.db.Query(ctx, getAllUserContent, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Content
+	for rows.Next() {
+		var i Content
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.Type,
+			&i.Data,
+			&i.Meta,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getUser = `-- name: GetUser :one
+select
+	U."ID",
+	U.LOGIN as login,
+	U.PASSWORD as password
+from
+	users u
+where
+	u.login = $1
+`
+
+func (q *Queries) GetUser(ctx context.Context, login string) (User, error) {
+	row := q.db.QueryRow(ctx, getUser, login)
+	var i User
+	err := row.Scan(&i.ID, &i.Login, &i.Password)
+	return i, err
+}
+
+const getUserContentByID = `-- name: GetUserContentByID :one
+select
+	id,	user_id, "type", "data",	meta
+from
+	public."content" c
+where
+	c.id = $1 and c.user_id = $2
+`
+
+type GetUserContentByIDParams struct {
+	ID     int32
+	UserID int32
+}
+
+func (q *Queries) GetUserContentByID(ctx context.Context, arg GetUserContentByIDParams) (Content, error) {
+	row := q.db.QueryRow(ctx, getUserContentByID, arg.ID, arg.UserID)
+	var i Content
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Type,
+		&i.Data,
+		&i.Meta,
+	)
+	return i, err
+}
+
+const getUserContentByType = `-- name: GetUserContentByType :many
+select
+	id,	user_id, "type", "data",	meta
+from
+	public."content" c
+where
+	c.id = $1 and c.user_id = $2 and c."type" =$3
+`
+
+type GetUserContentByTypeParams struct {
+	ID     int32
+	UserID int32
+	Type   int32
+}
+
+func (q *Queries) GetUserContentByType(ctx context.Context, arg GetUserContentByTypeParams) ([]Content, error) {
+	rows, err := q.db.Query(ctx, getUserContentByType, arg.ID, arg.UserID, arg.Type)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Content
+	for rows.Next() {
+		var i Content
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.Type,
+			&i.Data,
+			&i.Meta,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const saveContent = `-- name: SaveContent :one
+INSERT INTO public.content(
+	user_id, type, data, meta)
+	VALUES ($1, $2, $3, $4)
+    RETURNING id
+`
+
+type SaveContentParams struct {
+	UserID int32
+	Type   int32
+	Data   []byte
+	Meta   pgtype.Text
+}
+
+func (q *Queries) SaveContent(ctx context.Context, arg SaveContentParams) (int32, error) {
+	row := q.db.QueryRow(ctx, saveContent,
+		arg.UserID,
+		arg.Type,
+		arg.Data,
+		arg.Meta,
+	)
+	var id int32
+	err := row.Scan(&id)
+	return id, err
+}
+
+const updateContent = `-- name: UpdateContent :exec
+UPDATE public."content"
+SET user_id = $1, "type" = $2, "data" = $3, meta = $4
+WHERE id=$5
+`
+
+type UpdateContentParams struct {
+	UserID int32
+	Type   int32
+	Data   []byte
+	Meta   pgtype.Text
+	ID     int32
+}
+
+func (q *Queries) UpdateContent(ctx context.Context, arg UpdateContentParams) error {
+	_, err := q.db.Exec(ctx, updateContent,
+		arg.UserID,
+		arg.Type,
+		arg.Data,
+		arg.Meta,
+		arg.ID,
+	)
+	return err
 }
