@@ -50,5 +50,5 @@ select
 from
 	public."content" c
 where
-	c.id = $1 and c.user_id = $2 and c."type" =$3;
+	c.user_id = $1 and c."type" =$2;
 

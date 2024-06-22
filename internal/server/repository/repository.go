@@ -2,12 +2,20 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/dmad1989/gophKeeper/internal/server/repository/db"
+	"github.com/dmad1989/gophKeeper/tools/model"
 	"github.com/dmad1989/gophKeeper/tools/model/consts"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 	"go.uber.org/zap"
+)
+
+var (
+	ErrNoCtxUser     = errors.New("no userID in context")
+	ErrNotIntCtxUser = errors.New("wrong type of userID in context")
 )
 
 type Config interface {
@@ -47,4 +55,141 @@ func (r repo) Close(ctx context.Context) (err error) {
 	}
 	r.logger.Debug("db closed")
 	return
+}
+
+func (r repo) CreateUser(ctx context.Context, u model.User) (int32, error) {
+	id, err := r.queries.CreateUser(ctx,
+		db.CreateUserParams{
+			Login:    u.Login,
+			Password: u.HashPassword,
+		})
+
+	if err != nil {
+		return 0, fmt.Errorf("repository.CreateUser: queries: %w", err)
+	}
+	return id, nil
+}
+
+func (r repo) GetUser(ctx context.Context, login string) (*model.User, error) {
+	u, err := r.queries.GetUser(ctx, login)
+	if err != nil {
+		return nil, fmt.Errorf("repository.GetUser: queries: %w", err)
+	}
+	return &model.User{ID: u.ID, Login: u.Login, HashPassword: u.Password}, nil
+}
+
+func (r repo) SaveContent(ctx context.Context, c model.Content) (int32, error) {
+	id, err := r.queries.SaveContent(ctx,
+		db.SaveContentParams{
+			UserID: c.UserID,
+			Type:   c.Type,
+			Data:   c.Data,
+			Meta:   pgtype.Text{String: c.Meta, Valid: true},
+		})
+
+	if err != nil {
+		return 0, fmt.Errorf("repository.SaveContent: queries: %w", err)
+	}
+	return id, nil
+}
+
+func (r repo) GetUserContentByID(ctx context.Context, id int32) (*model.Content, error) {
+	userID, err := getUserIdFromContext(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("repository.UpdateContent: getUserIdFromContext: %w", err)
+	}
+	dbc, err := r.queries.GetUserContentByID(ctx, db.GetUserContentByIDParams{ID: id, UserID: userID})
+	if err != nil {
+		return nil, fmt.Errorf("repository.UpdateContent: queries: %w", err)
+	}
+	return &model.Content{
+		ID:     dbc.ID,
+		UserID: dbc.UserID,
+		Type:   dbc.Type,
+		Data:   dbc.Data,
+		Meta:   dbc.Meta.String}, nil
+}
+
+func (r repo) UpdateContent(ctx context.Context, c *model.Content) error {
+	err := r.queries.UpdateContent(ctx, db.UpdateContentParams{
+		ID:     c.ID,
+		UserID: c.UserID,
+		Type:   c.Type,
+		Data:   c.Data,
+		Meta:   pgtype.Text{String: c.Meta, Valid: true},
+	})
+
+	if err != nil {
+		return fmt.Errorf("repository.UpdateContent: queries: %w", err)
+	}
+	return nil
+}
+
+func (r repo) GetUserContentByType(ctx context.Context, t int32) ([]*model.Content, error) {
+	userID, err := getUserIdFromContext(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("repository.GetUserContentByType: getUserIdFromContext: %w", err)
+	}
+
+	dbc, err := r.queries.GetUserContentByType(ctx, db.GetUserContentByTypeParams{UserID: userID, Type: t})
+	if err != nil {
+		return nil, fmt.Errorf("repository.GetUserContentByType: queries: %w", err)
+	}
+
+	res := make([]*model.Content, len(dbc))
+
+	for _, c := range dbc {
+		res = append(res, &model.Content{
+			ID:     c.ID,
+			UserID: c.UserID,
+			Type:   c.Type,
+			Data:   c.Data,
+			Meta:   c.Meta.String,
+		})
+	}
+	return res, nil
+}
+
+func (r repo) GetAllUserContent(ctx context.Context) ([]*model.Content, error) {
+	userID, err := getUserIdFromContext(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("repository.GetAllUserContent: getUserIdFromContext: %w", err)
+	}
+	dbc, err := r.queries.GetAllUserContent(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("repository.GetAllUserContent: queries: %w", err)
+	}
+
+	res := make([]*model.Content, len(dbc))
+
+	for _, c := range dbc {
+		res = append(res, &model.Content{
+			ID:     c.ID,
+			UserID: c.UserID,
+			Type:   c.Type,
+			Data:   c.Data,
+			Meta:   c.Meta.String,
+		})
+	}
+	return res, nil
+
+}
+func (r repo) DeleteContent(ctx context.Context, id int32) (err error) {
+	err = r.queries.DeleteContent(ctx, id)
+	if err != nil {
+		err = fmt.Errorf("repository.DeleteContent: queries: %w", err)
+	}
+	return
+}
+
+func getUserIdFromContext(ctx context.Context) (int32, error) {
+	userIDCtx := ctx.Value(consts.UserCtxKey)
+	if userIDCtx == "" {
+		return 0, ErrNoCtxUser
+	}
+	userID, ok := userIDCtx.(int32)
+	if !ok {
+		return 0, ErrNotIntCtxUser
+	}
+	return userID, nil
 }

@@ -125,17 +125,16 @@ select
 from
 	public."content" c
 where
-	c.id = $1 and c.user_id = $2 and c."type" =$3
+	c.user_id = $1 and c."type" =$2
 `
 
 type GetUserContentByTypeParams struct {
-	ID     int32
 	UserID int32
 	Type   int32
 }
 
 func (q *Queries) GetUserContentByType(ctx context.Context, arg GetUserContentByTypeParams) ([]Content, error) {
-	rows, err := q.db.Query(ctx, getUserContentByType, arg.ID, arg.UserID, arg.Type)
+	rows, err := q.db.Query(ctx, getUserContentByType, arg.UserID, arg.Type)
 	if err != nil {
 		return nil, err
 	}

@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/dmad1989/gophKeeper/tools/model/consts"
+	"github.com/spf13/pflag"
 	"go.uber.org/zap"
 )
 
@@ -18,11 +19,6 @@ var (
 	//go:embed serverConfig.json
 	serverConfig []byte
 )
-
-type Config struct {
-	ServerPort string `json:"server_port"`
-	DBConn     string `json:"db_conn"`
-}
 
 func NewServer(ctx context.Context) (*Config, error) {
 	return newConfig(ctx, serverConfig)
@@ -39,8 +35,28 @@ func newConfig(ctx context.Context, embConfig []byte) (*Config, error) {
 	if err := json.Unmarshal(embConfig, &cfg); err != nil {
 		return nil, fmt.Errorf("config.NewViper: reading config file, %w", err)
 	}
+	cfg.parseFlags()
 	log.Debug("read config", zap.Stringer("config", cfg))
 	return &cfg, nil
+}
+
+func (cfg *Config) parseFlags() {
+	var serverPort string
+	pflag.StringVarP(&serverPort, "a", "a", "", "Port of the proto server")
+
+	var dbConn string
+	pflag.StringVarP(&dbConn, "d", "d", "", "Postgres DB DSN")
+	if serverPort != "" {
+		cfg.ServerPort = serverPort
+	}
+	if dbConn != "" {
+		cfg.DBConn = dbConn
+	}
+}
+
+type Config struct {
+	ServerPort string `json:"server_port"`
+	DBConn     string `json:"db_conn"`
 }
 
 func (c Config) String() string {
