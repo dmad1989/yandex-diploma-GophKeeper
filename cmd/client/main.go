@@ -6,12 +6,12 @@ import (
 	"log"
 
 	"github.com/dmad1989/gophKeeper/internal/config"
-	"github.com/dmad1989/gophKeeper/pkg/logger"
+	"github.com/dmad1989/gophKeeper/internal/logging"
 	"github.com/dmad1989/gophKeeper/pkg/model/consts"
 )
 
 func main() {
-	zlog, err := logger.NewLogger()
+	zlog, err := logging.NewLogger()
 	if err != nil {
 		log.Fatal(err)
 	}
