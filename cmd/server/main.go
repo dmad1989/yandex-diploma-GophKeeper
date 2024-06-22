@@ -6,9 +6,9 @@ import (
 	"log"
 
 	"github.com/dmad1989/gophKeeper/internal/config"
-	"github.com/dmad1989/gophKeeper/internal/logging"
 	"github.com/dmad1989/gophKeeper/internal/server/repository"
-	"github.com/dmad1989/gophKeeper/pkg/model/consts"
+	"github.com/dmad1989/gophKeeper/tools/logging"
+	"github.com/dmad1989/gophKeeper/tools/model/consts"
 )
 
 func main() {

@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/dmad1989/gophKeeper/internal/server/repository/db"
-	"github.com/dmad1989/gophKeeper/pkg/model/consts"
+	"github.com/dmad1989/gophKeeper/tools/model/consts"
 	"github.com/jackc/pgx/v5"
 	"go.uber.org/zap"
 )
