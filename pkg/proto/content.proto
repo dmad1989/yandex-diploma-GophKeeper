@@ -1,0 +1,51 @@
+syntax = "proto3";
+
+package gophkeeper;
+
+option go_package = "proto/gen";
+
+enum TYPE {
+  NAN = 0;
+  LOGIN_PASSWORD = 1;
+  BANK_CARD = 2;
+  FILE = 3;
+}
+
+message Empty {
+}
+
+message Content {
+  sint32 id = 1;
+  TYPE type = 2;
+  string meta = 3;
+  bytes data = 4;
+}
+
+message ContentDescription {
+  sint32 id = 1;
+  TYPE type = 2;
+  bytes meta = 3;
+}
+
+message ContentId {
+  sint32 id = 1;
+}
+
+message Query {
+  TYPE contentType = 1;
+}
+
+message FileChunk {
+  string meta = 1;
+  bytes data = 2;
+}
+
+service Resources {
+  rpc Save(Content) returns (ContentId);
+  rpc Delete(ContentId) returns (Empty);
+  rpc Update(Content) returns (Empty);
+  rpc GetDescriptions(Query) returns (stream ContentDescription);
+  rpc Get(ContentId) returns (Content);
+  rpc SaveFile(stream FileChunk) returns (ContentId);
+  rpc GetFile(ContentId) returns (stream FileChunk);
+}

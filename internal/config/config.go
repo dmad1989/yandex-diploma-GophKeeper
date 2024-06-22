@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/dmad1989/gophKeeper/tools/model/consts"
+	"github.com/dmad1989/gophKeeper/pkg/model/consts"
 	"github.com/spf13/pflag"
 	"go.uber.org/zap"
 )
