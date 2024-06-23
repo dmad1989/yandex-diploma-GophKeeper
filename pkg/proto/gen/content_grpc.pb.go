@@ -19,73 +19,73 @@ import (
 const _ = grpc.SupportPackageIsVersion8
 
 const (
-	Resources_Save_FullMethodName            = "/gophkeeper.Resources/Save"
-	Resources_Delete_FullMethodName          = "/gophkeeper.Resources/Delete"
-	Resources_Update_FullMethodName          = "/gophkeeper.Resources/Update"
-	Resources_GetDescriptions_FullMethodName = "/gophkeeper.Resources/GetDescriptions"
-	Resources_Get_FullMethodName             = "/gophkeeper.Resources/Get"
-	Resources_SaveFile_FullMethodName        = "/gophkeeper.Resources/SaveFile"
-	Resources_GetFile_FullMethodName         = "/gophkeeper.Resources/GetFile"
+	Contents_Save_FullMethodName            = "/gophkeeper.Contents/Save"
+	Contents_Delete_FullMethodName          = "/gophkeeper.Contents/Delete"
+	Contents_Update_FullMethodName          = "/gophkeeper.Contents/Update"
+	Contents_GetDescriptions_FullMethodName = "/gophkeeper.Contents/GetDescriptions"
+	Contents_Get_FullMethodName             = "/gophkeeper.Contents/Get"
+	Contents_SaveFile_FullMethodName        = "/gophkeeper.Contents/SaveFile"
+	Contents_GetFile_FullMethodName         = "/gophkeeper.Contents/GetFile"
 )
 
-// ResourcesClient is the client API for Resources service.
+// ContentsClient is the client API for Contents service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-type ResourcesClient interface {
+type ContentsClient interface {
 	Save(ctx context.Context, in *Content, opts ...grpc.CallOption) (*ContentId, error)
 	Delete(ctx context.Context, in *ContentId, opts ...grpc.CallOption) (*Empty, error)
 	Update(ctx context.Context, in *Content, opts ...grpc.CallOption) (*Empty, error)
-	GetDescriptions(ctx context.Context, in *Query, opts ...grpc.CallOption) (Resources_GetDescriptionsClient, error)
+	GetDescriptions(ctx context.Context, in *Query, opts ...grpc.CallOption) (Contents_GetDescriptionsClient, error)
 	Get(ctx context.Context, in *ContentId, opts ...grpc.CallOption) (*Content, error)
-	SaveFile(ctx context.Context, opts ...grpc.CallOption) (Resources_SaveFileClient, error)
-	GetFile(ctx context.Context, in *ContentId, opts ...grpc.CallOption) (Resources_GetFileClient, error)
+	SaveFile(ctx context.Context, opts ...grpc.CallOption) (Contents_SaveFileClient, error)
+	GetFile(ctx context.Context, in *ContentId, opts ...grpc.CallOption) (Contents_GetFileClient, error)
 }
 
-type resourcesClient struct {
+type contentsClient struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewResourcesClient(cc grpc.ClientConnInterface) ResourcesClient {
-	return &resourcesClient{cc}
+func NewContentsClient(cc grpc.ClientConnInterface) ContentsClient {
+	return &contentsClient{cc}
 }
 
-func (c *resourcesClient) Save(ctx context.Context, in *Content, opts ...grpc.CallOption) (*ContentId, error) {
+func (c *contentsClient) Save(ctx context.Context, in *Content, opts ...grpc.CallOption) (*ContentId, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ContentId)
-	err := c.cc.Invoke(ctx, Resources_Save_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, Contents_Save_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *resourcesClient) Delete(ctx context.Context, in *ContentId, opts ...grpc.CallOption) (*Empty, error) {
+func (c *contentsClient) Delete(ctx context.Context, in *ContentId, opts ...grpc.CallOption) (*Empty, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Empty)
-	err := c.cc.Invoke(ctx, Resources_Delete_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, Contents_Delete_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *resourcesClient) Update(ctx context.Context, in *Content, opts ...grpc.CallOption) (*Empty, error) {
+func (c *contentsClient) Update(ctx context.Context, in *Content, opts ...grpc.CallOption) (*Empty, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Empty)
-	err := c.cc.Invoke(ctx, Resources_Update_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, Contents_Update_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *resourcesClient) GetDescriptions(ctx context.Context, in *Query, opts ...grpc.CallOption) (Resources_GetDescriptionsClient, error) {
+func (c *contentsClient) GetDescriptions(ctx context.Context, in *Query, opts ...grpc.CallOption) (Contents_GetDescriptionsClient, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &Resources_ServiceDesc.Streams[0], Resources_GetDescriptions_FullMethodName, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &Contents_ServiceDesc.Streams[0], Contents_GetDescriptions_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &resourcesGetDescriptionsClient{ClientStream: stream}
+	x := &contentsGetDescriptionsClient{ClientStream: stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -95,16 +95,16 @@ func (c *resourcesClient) GetDescriptions(ctx context.Context, in *Query, opts .
 	return x, nil
 }
 
-type Resources_GetDescriptionsClient interface {
+type Contents_GetDescriptionsClient interface {
 	Recv() (*ContentDescription, error)
 	grpc.ClientStream
 }
 
-type resourcesGetDescriptionsClient struct {
+type contentsGetDescriptionsClient struct {
 	grpc.ClientStream
 }
 
-func (x *resourcesGetDescriptionsClient) Recv() (*ContentDescription, error) {
+func (x *contentsGetDescriptionsClient) Recv() (*ContentDescription, error) {
 	m := new(ContentDescription)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
@@ -112,41 +112,41 @@ func (x *resourcesGetDescriptionsClient) Recv() (*ContentDescription, error) {
 	return m, nil
 }
 
-func (c *resourcesClient) Get(ctx context.Context, in *ContentId, opts ...grpc.CallOption) (*Content, error) {
+func (c *contentsClient) Get(ctx context.Context, in *ContentId, opts ...grpc.CallOption) (*Content, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Content)
-	err := c.cc.Invoke(ctx, Resources_Get_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, Contents_Get_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *resourcesClient) SaveFile(ctx context.Context, opts ...grpc.CallOption) (Resources_SaveFileClient, error) {
+func (c *contentsClient) SaveFile(ctx context.Context, opts ...grpc.CallOption) (Contents_SaveFileClient, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &Resources_ServiceDesc.Streams[1], Resources_SaveFile_FullMethodName, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &Contents_ServiceDesc.Streams[1], Contents_SaveFile_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &resourcesSaveFileClient{ClientStream: stream}
+	x := &contentsSaveFileClient{ClientStream: stream}
 	return x, nil
 }
 
-type Resources_SaveFileClient interface {
+type Contents_SaveFileClient interface {
 	Send(*FileChunk) error
 	CloseAndRecv() (*ContentId, error)
 	grpc.ClientStream
 }
 
-type resourcesSaveFileClient struct {
+type contentsSaveFileClient struct {
 	grpc.ClientStream
 }
 
-func (x *resourcesSaveFileClient) Send(m *FileChunk) error {
+func (x *contentsSaveFileClient) Send(m *FileChunk) error {
 	return x.ClientStream.SendMsg(m)
 }
 
-func (x *resourcesSaveFileClient) CloseAndRecv() (*ContentId, error) {
+func (x *contentsSaveFileClient) CloseAndRecv() (*ContentId, error) {
 	if err := x.ClientStream.CloseSend(); err != nil {
 		return nil, err
 	}
@@ -157,13 +157,13 @@ func (x *resourcesSaveFileClient) CloseAndRecv() (*ContentId, error) {
 	return m, nil
 }
 
-func (c *resourcesClient) GetFile(ctx context.Context, in *ContentId, opts ...grpc.CallOption) (Resources_GetFileClient, error) {
+func (c *contentsClient) GetFile(ctx context.Context, in *ContentId, opts ...grpc.CallOption) (Contents_GetFileClient, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &Resources_ServiceDesc.Streams[2], Resources_GetFile_FullMethodName, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &Contents_ServiceDesc.Streams[2], Contents_GetFile_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &resourcesGetFileClient{ClientStream: stream}
+	x := &contentsGetFileClient{ClientStream: stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -173,16 +173,16 @@ func (c *resourcesClient) GetFile(ctx context.Context, in *ContentId, opts ...gr
 	return x, nil
 }
 
-type Resources_GetFileClient interface {
+type Contents_GetFileClient interface {
 	Recv() (*FileChunk, error)
 	grpc.ClientStream
 }
 
-type resourcesGetFileClient struct {
+type contentsGetFileClient struct {
 	grpc.ClientStream
 }
 
-func (x *resourcesGetFileClient) Recv() (*FileChunk, error) {
+func (x *contentsGetFileClient) Recv() (*FileChunk, error) {
 	m := new(FileChunk)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
@@ -190,170 +190,170 @@ func (x *resourcesGetFileClient) Recv() (*FileChunk, error) {
 	return m, nil
 }
 
-// ResourcesServer is the server API for Resources service.
-// All implementations must embed UnimplementedResourcesServer
+// ContentsServer is the server API for Contents service.
+// All implementations must embed UnimplementedContentsServer
 // for forward compatibility
-type ResourcesServer interface {
+type ContentsServer interface {
 	Save(context.Context, *Content) (*ContentId, error)
 	Delete(context.Context, *ContentId) (*Empty, error)
 	Update(context.Context, *Content) (*Empty, error)
-	GetDescriptions(*Query, Resources_GetDescriptionsServer) error
+	GetDescriptions(*Query, Contents_GetDescriptionsServer) error
 	Get(context.Context, *ContentId) (*Content, error)
-	SaveFile(Resources_SaveFileServer) error
-	GetFile(*ContentId, Resources_GetFileServer) error
-	mustEmbedUnimplementedResourcesServer()
+	SaveFile(Contents_SaveFileServer) error
+	GetFile(*ContentId, Contents_GetFileServer) error
+	mustEmbedUnimplementedContentsServer()
 }
 
-// UnimplementedResourcesServer must be embedded to have forward compatible implementations.
-type UnimplementedResourcesServer struct {
+// UnimplementedContentsServer must be embedded to have forward compatible implementations.
+type UnimplementedContentsServer struct {
 }
 
-func (UnimplementedResourcesServer) Save(context.Context, *Content) (*ContentId, error) {
+func (UnimplementedContentsServer) Save(context.Context, *Content) (*ContentId, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Save not implemented")
 }
-func (UnimplementedResourcesServer) Delete(context.Context, *ContentId) (*Empty, error) {
+func (UnimplementedContentsServer) Delete(context.Context, *ContentId) (*Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
 }
-func (UnimplementedResourcesServer) Update(context.Context, *Content) (*Empty, error) {
+func (UnimplementedContentsServer) Update(context.Context, *Content) (*Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Update not implemented")
 }
-func (UnimplementedResourcesServer) GetDescriptions(*Query, Resources_GetDescriptionsServer) error {
+func (UnimplementedContentsServer) GetDescriptions(*Query, Contents_GetDescriptionsServer) error {
 	return status.Errorf(codes.Unimplemented, "method GetDescriptions not implemented")
 }
-func (UnimplementedResourcesServer) Get(context.Context, *ContentId) (*Content, error) {
+func (UnimplementedContentsServer) Get(context.Context, *ContentId) (*Content, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Get not implemented")
 }
-func (UnimplementedResourcesServer) SaveFile(Resources_SaveFileServer) error {
+func (UnimplementedContentsServer) SaveFile(Contents_SaveFileServer) error {
 	return status.Errorf(codes.Unimplemented, "method SaveFile not implemented")
 }
-func (UnimplementedResourcesServer) GetFile(*ContentId, Resources_GetFileServer) error {
+func (UnimplementedContentsServer) GetFile(*ContentId, Contents_GetFileServer) error {
 	return status.Errorf(codes.Unimplemented, "method GetFile not implemented")
 }
-func (UnimplementedResourcesServer) mustEmbedUnimplementedResourcesServer() {}
+func (UnimplementedContentsServer) mustEmbedUnimplementedContentsServer() {}
 
-// UnsafeResourcesServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to ResourcesServer will
+// UnsafeContentsServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to ContentsServer will
 // result in compilation errors.
-type UnsafeResourcesServer interface {
-	mustEmbedUnimplementedResourcesServer()
+type UnsafeContentsServer interface {
+	mustEmbedUnimplementedContentsServer()
 }
 
-func RegisterResourcesServer(s grpc.ServiceRegistrar, srv ResourcesServer) {
-	s.RegisterService(&Resources_ServiceDesc, srv)
+func RegisterContentsServer(s grpc.ServiceRegistrar, srv ContentsServer) {
+	s.RegisterService(&Contents_ServiceDesc, srv)
 }
 
-func _Resources_Save_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Contents_Save_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(Content)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ResourcesServer).Save(ctx, in)
+		return srv.(ContentsServer).Save(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Resources_Save_FullMethodName,
+		FullMethod: Contents_Save_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ResourcesServer).Save(ctx, req.(*Content))
+		return srv.(ContentsServer).Save(ctx, req.(*Content))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Resources_Delete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Contents_Delete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ContentId)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ResourcesServer).Delete(ctx, in)
+		return srv.(ContentsServer).Delete(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Resources_Delete_FullMethodName,
+		FullMethod: Contents_Delete_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ResourcesServer).Delete(ctx, req.(*ContentId))
+		return srv.(ContentsServer).Delete(ctx, req.(*ContentId))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Resources_Update_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Contents_Update_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(Content)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ResourcesServer).Update(ctx, in)
+		return srv.(ContentsServer).Update(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Resources_Update_FullMethodName,
+		FullMethod: Contents_Update_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ResourcesServer).Update(ctx, req.(*Content))
+		return srv.(ContentsServer).Update(ctx, req.(*Content))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Resources_GetDescriptions_Handler(srv interface{}, stream grpc.ServerStream) error {
+func _Contents_GetDescriptions_Handler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(Query)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(ResourcesServer).GetDescriptions(m, &resourcesGetDescriptionsServer{ServerStream: stream})
+	return srv.(ContentsServer).GetDescriptions(m, &contentsGetDescriptionsServer{ServerStream: stream})
 }
 
-type Resources_GetDescriptionsServer interface {
+type Contents_GetDescriptionsServer interface {
 	Send(*ContentDescription) error
 	grpc.ServerStream
 }
 
-type resourcesGetDescriptionsServer struct {
+type contentsGetDescriptionsServer struct {
 	grpc.ServerStream
 }
 
-func (x *resourcesGetDescriptionsServer) Send(m *ContentDescription) error {
+func (x *contentsGetDescriptionsServer) Send(m *ContentDescription) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func _Resources_Get_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Contents_Get_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ContentId)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ResourcesServer).Get(ctx, in)
+		return srv.(ContentsServer).Get(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Resources_Get_FullMethodName,
+		FullMethod: Contents_Get_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ResourcesServer).Get(ctx, req.(*ContentId))
+		return srv.(ContentsServer).Get(ctx, req.(*ContentId))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Resources_SaveFile_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(ResourcesServer).SaveFile(&resourcesSaveFileServer{ServerStream: stream})
+func _Contents_SaveFile_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(ContentsServer).SaveFile(&contentsSaveFileServer{ServerStream: stream})
 }
 
-type Resources_SaveFileServer interface {
+type Contents_SaveFileServer interface {
 	SendAndClose(*ContentId) error
 	Recv() (*FileChunk, error)
 	grpc.ServerStream
 }
 
-type resourcesSaveFileServer struct {
+type contentsSaveFileServer struct {
 	grpc.ServerStream
 }
 
-func (x *resourcesSaveFileServer) SendAndClose(m *ContentId) error {
+func (x *contentsSaveFileServer) SendAndClose(m *ContentId) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func (x *resourcesSaveFileServer) Recv() (*FileChunk, error) {
+func (x *contentsSaveFileServer) Recv() (*FileChunk, error) {
 	m := new(FileChunk)
 	if err := x.ServerStream.RecvMsg(m); err != nil {
 		return nil, err
@@ -361,65 +361,65 @@ func (x *resourcesSaveFileServer) Recv() (*FileChunk, error) {
 	return m, nil
 }
 
-func _Resources_GetFile_Handler(srv interface{}, stream grpc.ServerStream) error {
+func _Contents_GetFile_Handler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(ContentId)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(ResourcesServer).GetFile(m, &resourcesGetFileServer{ServerStream: stream})
+	return srv.(ContentsServer).GetFile(m, &contentsGetFileServer{ServerStream: stream})
 }
 
-type Resources_GetFileServer interface {
+type Contents_GetFileServer interface {
 	Send(*FileChunk) error
 	grpc.ServerStream
 }
 
-type resourcesGetFileServer struct {
+type contentsGetFileServer struct {
 	grpc.ServerStream
 }
 
-func (x *resourcesGetFileServer) Send(m *FileChunk) error {
+func (x *contentsGetFileServer) Send(m *FileChunk) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-// Resources_ServiceDesc is the grpc.ServiceDesc for Resources service.
+// Contents_ServiceDesc is the grpc.ServiceDesc for Contents service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
-var Resources_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "gophkeeper.Resources",
-	HandlerType: (*ResourcesServer)(nil),
+var Contents_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "gophkeeper.Contents",
+	HandlerType: (*ContentsServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
 			MethodName: "Save",
-			Handler:    _Resources_Save_Handler,
+			Handler:    _Contents_Save_Handler,
 		},
 		{
 			MethodName: "Delete",
-			Handler:    _Resources_Delete_Handler,
+			Handler:    _Contents_Delete_Handler,
 		},
 		{
 			MethodName: "Update",
-			Handler:    _Resources_Update_Handler,
+			Handler:    _Contents_Update_Handler,
 		},
 		{
 			MethodName: "Get",
-			Handler:    _Resources_Get_Handler,
+			Handler:    _Contents_Get_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
 		{
 			StreamName:    "GetDescriptions",
-			Handler:       _Resources_GetDescriptions_Handler,
+			Handler:       _Contents_GetDescriptions_Handler,
 			ServerStreams: true,
 		},
 		{
 			StreamName:    "SaveFile",
-			Handler:       _Resources_SaveFile_Handler,
+			Handler:       _Contents_SaveFile_Handler,
 			ClientStreams: true,
 		},
 		{
 			StreamName:    "GetFile",
-			Handler:       _Resources_GetFile_Handler,
+			Handler:       _Contents_GetFile_Handler,
 			ServerStreams: true,
 		},
 	},

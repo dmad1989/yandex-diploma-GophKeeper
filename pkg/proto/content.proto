@@ -40,7 +40,7 @@ message FileChunk {
   bytes data = 2;
 }
 
-service Resources {
+service Contents {
   rpc Save(Content) returns (ContentId);
   rpc Delete(ContentId) returns (Empty);
   rpc Update(Content) returns (Empty);
