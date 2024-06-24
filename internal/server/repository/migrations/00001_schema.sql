@@ -44,4 +44,3 @@ ALTER TABLE IF EXISTS public.content
 DROP TABLE public.content;
 DROP TABLE public.users;
 -- +goose StatementEnd
-
