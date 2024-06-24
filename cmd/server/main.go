@@ -41,7 +41,7 @@ func main() {
 
 	zlog.Debug(contentApp)
 	zlog.Debug(userApp)
-	authSrv := grpc.NewAuthServer(ctx)
+	authSrv := grpc.NewAuthServer(ctx, userApp)
 	contentsSrv := grpc.NewContentsServer(ctx)
 
 	s := grpc.NewServer(ctx, authSrv, contentsSrv, cfg)

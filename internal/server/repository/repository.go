@@ -10,6 +10,9 @@ import (
 	"github.com/dmad1989/gophKeeper/internal/server/repository/db"
 	"github.com/dmad1989/gophKeeper/pkg/model"
 	"github.com/dmad1989/gophKeeper/pkg/model/consts"
+	"github.com/dmad1989/gophKeeper/pkg/model/errs"
+	"github.com/jackc/pgconn"
+	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
@@ -72,14 +75,16 @@ func (r repo) Close(ctx context.Context) (err error) {
 	return
 }
 
-func (r repo) CreateUser(ctx context.Context, u model.User) (int32, error) {
+func (r repo) CreateUser(ctx context.Context, u *model.User) (int32, error) {
 	id, err := r.queries.CreateUser(ctx,
 		db.CreateUserParams{
 			Login:    u.Login,
 			Password: u.HashPassword,
 		})
-
 	if err != nil {
+		if pgError, ok := err.(*pgconn.PgError); ok && pgError.Code == pgerrcode.UniqueViolation {
+			return 0, errs.ErrUserAlreadyExist
+		}
 		return 0, fmt.Errorf("repository.CreateUser: queries: %w", err)
 	}
 	return id, nil

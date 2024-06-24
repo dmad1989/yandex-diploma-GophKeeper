@@ -2,13 +2,71 @@ package grpc
 
 import (
 	"context"
+	"errors"
 
+	"github.com/dmad1989/gophKeeper/pkg/model"
+	"github.com/dmad1989/gophKeeper/pkg/model/consts"
+	"github.com/dmad1989/gophKeeper/pkg/model/errs"
 	pb "github.com/dmad1989/gophKeeper/pkg/proto/gen"
+	"go.uber.org/zap"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
-type Auth struct {
+var (
+	ErrUsernameEmpty = errors.New("username is empty")
+	ErrPasswordEmpty = errors.New("password is empty")
+)
+
+type UserApp interface {
+	Register(ctx context.Context, user *model.User) error
+	GetByLogin(ctx context.Context, login string) (user *model.User, err error)
+	ValidatePassword(cxt context.Context, user *model.User, password string) (bool, error)
 }
 
-func NewAuthServer(ctx context.Context) pb.AuthServer {
+type authServ struct {
+	log     *zap.SugaredLogger
+	userApp UserApp
+	pb.UnimplementedAuthServer
+}
+
+func NewAuthServer(ctx context.Context, u UserApp) pb.AuthServer {
+	l := ctx.Value(consts.LoggerCtxKey).(*zap.SugaredLogger).Named("UserApp")
+	return &authServ{log: l, userApp: u}
+}
+
+func (a *authServ) Register(ctx context.Context, ad *pb.AuthData) (*pb.TokenData, error) {
+	err := validate(ad)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "auth.Register: %s", err.Error())
+	}
+	user := model.User{Login: ad.Username, Password: ad.Password}
+
+	err = a.userApp.Register(ctx, &user)
+	if err != nil {
+		if errors.Is(err, errs.ErrUserAlreadyExist) {
+			return nil, status.Errorf(codes.AlreadyExists, "auth.Register: %s", err.Error())
+		}
+		return nil, status.Errorf(codes.Internal, "auth.Register: %s", err.Error())
+	}
+	//todo token generation
+	// user.ID
+	return nil, nil
+}
+func (a *authServ) Login(ctx context.Context, ad *pb.AuthData) (*pb.TokenData, error) {
+	err := validate(ad)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "auth.Login: %s", err.Error())
+	}
+	return nil, nil
+}
+
+func validate(a *pb.AuthData) error {
+	if a.Username == "" {
+		return ErrUsernameEmpty
+	}
+	if a.Password == "" {
+		return ErrPasswordEmpty
+	}
 	return nil
 }
