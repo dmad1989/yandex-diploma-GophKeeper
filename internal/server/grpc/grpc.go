@@ -11,7 +11,7 @@ import (
 )
 
 type Configer interface {
-	GetServerPort() string
+	GetServerAddress() string
 }
 
 type Servers struct {
@@ -37,14 +37,14 @@ func (s *Servers) Run(ctx context.Context) {
 	pb.RegisterContentsServer(s.grpc, s.contents)
 
 	go func() {
-		srv, err := net.Listen("tcp", s.cfg.GetServerPort())
+		srv, err := net.Listen("tcp", s.cfg.GetServerAddress())
 		if err != nil {
-			s.log.Errorf("listen tcp port 3200 %w", err)
+			s.log.Errorf("grpc.Run: net.Listen: %w", err)
 		}
 		s.log.Info("gRPC server started")
 		err = s.grpc.Serve(srv)
 		if err != nil {
-			s.log.Errorf("grps server serve: %w", err)
+			s.log.Errorf("grpc.Run: grpc.Serve: %w", err)
 		}
 	}()
 

@@ -1,4 +1,4 @@
 {
-    "server_port": ":3200",
+    "server_address": ":3200",
     "db_conn":"host=localhost port=5432 user=postgres password=admin1 dbname=gophkeeper sslmode=disable"
 }

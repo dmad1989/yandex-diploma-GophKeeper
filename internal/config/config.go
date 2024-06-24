@@ -5,6 +5,7 @@ import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
+	"os"
 
 	"github.com/dmad1989/gophKeeper/pkg/model/consts"
 	"github.com/spf13/pflag"
@@ -41,32 +42,39 @@ func newConfig(ctx context.Context, embConfig []byte) (*Config, error) {
 }
 
 func (cfg *Config) parseFlags() {
-	var serverPort string
-	pflag.StringVarP(&serverPort, "a", "a", "", "Port of the proto server")
-
-	var dbConn string
-	pflag.StringVarP(&dbConn, "d", "d", "", "Postgres DB DSN")
-	if serverPort != "" {
-		cfg.ServerPort = serverPort
+	sAddress := os.Getenv("GOPHKEEPER_SERVER_ADDRESS")
+	if sAddress == "" {
+		pflag.StringVarP(&sAddress, "a", "a", "", "Port of the proto server")
 	}
-	if dbConn != "" {
-		cfg.DBConn = dbConn
+
+	db := os.Getenv("GOPHKEEPER_DB_DSN")
+	if db == "" {
+		pflag.StringVarP(&db, "d", "d", "", "Postgres DB DSN")
+	}
+
+	pflag.Parse()
+
+	if sAddress != "" {
+		cfg.ServerAddress = sAddress
+	}
+	if db != "" {
+		cfg.DBConn = db
 	}
 }
 
 type Config struct {
-	ServerPort string `json:"server_port"`
-	DBConn     string `json:"db_conn"`
+	ServerAddress string `json:"server_address"`
+	DBConn        string `json:"db_conn"`
 }
 
 func (c Config) String() string {
-	return fmt.Sprintf(configFormat, c.ServerPort, c.DBConn)
+	return fmt.Sprintf(configFormat, c.ServerAddress, c.DBConn)
 }
 
 func (c Config) GetDBConn() string {
 	return c.DBConn
 }
 
-func (c Config) GetServerPort() string {
-	return c.ServerPort
+func (c Config) GetServerAddress() string {
+	return c.ServerAddress
 }
