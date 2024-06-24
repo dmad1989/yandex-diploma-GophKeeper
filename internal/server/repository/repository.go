@@ -2,18 +2,24 @@ package repository
 
 import (
 	"context"
+	"database/sql"
+	"embed"
 	"errors"
 	"fmt"
 
 	"github.com/dmad1989/gophKeeper/internal/server/repository/db"
 	"github.com/dmad1989/gophKeeper/pkg/model"
 	"github.com/dmad1989/gophKeeper/pkg/model/consts"
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jackc/pgx/v5/stdlib"
+	"github.com/pressly/goose/v3"
 	"go.uber.org/zap"
 )
 
 var (
+	//go:embed migrations/*.sql
+	embedMigrations  embed.FS
 	ErrNoCtxUser     = errors.New("no userID in context")
 	ErrNotIntCtxUser = errors.New("wrong type of userID in context")
 )
@@ -25,31 +31,40 @@ type Config interface {
 type repo struct {
 	logger  *zap.SugaredLogger
 	queries *db.Queries
-	dbConn  *pgx.Conn
+	dbConn  *sql.DB
 }
 
 func New(ctx context.Context, c Config) (*repo, error) {
 	log := ctx.Value(consts.LoggerCtxKey).(*zap.SugaredLogger).Named("repository")
 
-	pconf, err := pgx.ParseConfig(c.GetDBConn())
+	pconf, err := pgxpool.ParseConfig(c.GetDBConn())
 	if err != nil {
 		return nil, fmt.Errorf("repository.new: ParseConfig: %w", err)
 	}
 
-	conn, err := pgx.ConnectConfig(ctx, pconf)
+	pool, err := pgxpool.NewWithConfig(ctx, pconf)
 	if err != nil {
-		return nil, fmt.Errorf("repository.new: ConnectConfig: %w", err)
+		return nil, fmt.Errorf("repository.new: pgxpool.NewWithConfig: %w", err)
+	}
+	dbConn := stdlib.OpenDBFromPool(pool)
+	goose.SetBaseFS(embedMigrations)
+
+	if err := goose.SetDialect("postgres"); err != nil {
+		return nil, fmt.Errorf("goose.SetDialect: %w", err)
+	}
+	if err := goose.Up(dbConn, "migrations"); err != nil {
+		return nil, fmt.Errorf("goose: create table: %w", err)
 	}
 	log.Debug("db connected")
 	return &repo{
 		log,
-		db.New(conn),
-		conn,
+		db.New(pool),
+		dbConn,
 	}, nil
 }
 
 func (r repo) Close(ctx context.Context) (err error) {
-	err = r.dbConn.Close(ctx)
+	err = r.dbConn.Close()
 	if err != nil {
 		return fmt.Errorf("repository.Close: dbConn.Close: %w", err)
 	}
