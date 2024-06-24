@@ -13,6 +13,7 @@ import (
 	"github.com/dmad1989/gophKeeper/pkg/model/errs"
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
@@ -93,6 +94,9 @@ func (r repo) CreateUser(ctx context.Context, u *model.User) (int32, error) {
 func (r repo) GetUser(ctx context.Context, login string) (*model.User, error) {
 	u, err := r.queries.GetUser(ctx, login)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, errs.ErrUserNotFound
+		}
 		return nil, fmt.Errorf("repository.GetUser: queries: %w", err)
 	}
 	return &model.User{ID: u.ID, Login: u.Login, HashPassword: u.Password}, nil

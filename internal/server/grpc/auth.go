@@ -58,6 +58,25 @@ func (a *authServ) Login(ctx context.Context, ad *pb.AuthData) (*pb.TokenData, e
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "auth.Login: %s", err.Error())
 	}
+
+	user, err := a.userApp.GetByLogin(ctx, ad.Username)
+	if err != nil {
+		if errors.Is(err, errs.ErrUserNotFound) {
+			return nil, status.Errorf(codes.NotFound, "auth.Login: %s", err.Error())
+		}
+		return nil, status.Errorf(codes.Internal, "auth.Login: %s", err.Error())
+	}
+
+	ok, err := a.userApp.ValidatePassword(ctx, user, ad.Password)
+
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "auth.Login: %s", err.Error())
+	}
+
+	if !ok {
+		return nil, status.Error(codes.InvalidArgument, "password is incorrect")
+	}
+	//todo token generation
 	return nil, nil
 }
 
