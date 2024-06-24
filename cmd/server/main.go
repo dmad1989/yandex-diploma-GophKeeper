@@ -4,10 +4,14 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/dmad1989/gophKeeper/internal/config"
 	"github.com/dmad1989/gophKeeper/internal/server/app/content"
 	"github.com/dmad1989/gophKeeper/internal/server/app/user"
+	"github.com/dmad1989/gophKeeper/internal/server/grpc"
 	"github.com/dmad1989/gophKeeper/internal/server/repository"
 	"github.com/dmad1989/gophKeeper/pkg/logging"
 	"github.com/dmad1989/gophKeeper/pkg/model/consts"
@@ -33,14 +37,18 @@ func main() {
 	}
 
 	userApp := user.NewApp(ctx, repo)
-	contectApp := content.NewApp(ctx, repo)
+	contentApp := content.NewApp(ctx, repo)
 
-	zlog.Debug(contectApp)
+	zlog.Debug(contentApp)
 	zlog.Debug(userApp)
-	// TODO delete
-	err = repo.Close(ctx)
-	if err != nil {
-		log.Fatal(err)
-	}
+	authSrv := grpc.NewAuthServer(ctx)
+	contentsSrv := grpc.NewContentsServer(ctx)
+
+	s := grpc.NewServer(ctx, authSrv, contentsSrv, cfg)
+	ctx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
+	defer stop()
+	s.Run(ctx)
 	fmt.Println("server is working!")
+	<-ctx.Done()
+	s.Stop()
 }

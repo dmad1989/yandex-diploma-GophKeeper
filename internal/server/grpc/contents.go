@@ -6,9 +6,9 @@ import (
 	pb "github.com/dmad1989/gophKeeper/pkg/proto/gen"
 )
 
-type Auth struct {
+type Contents struct {
 }
 
-func NewAuthServer(ctx context.Context) pb.AuthServer {
+func NewContentsServer(ctx context.Context) pb.ContentsServer {
 	return nil
 }
