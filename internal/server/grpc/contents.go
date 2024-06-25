@@ -9,6 +9,6 @@ import (
 type Contents struct {
 }
 
-func NewContentsServer(ctx context.Context) pb.ContentsServer {
-	return nil
+func NewContentsServer(ctx context.Context, c any) pb.ContentsServer {
+	return pb.UnimplementedContentsServer{}
 }

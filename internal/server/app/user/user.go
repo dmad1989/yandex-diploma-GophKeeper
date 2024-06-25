@@ -8,6 +8,7 @@ import (
 
 	"github.com/dmad1989/gophKeeper/pkg/model"
 	"github.com/dmad1989/gophKeeper/pkg/model/consts"
+	"github.com/dmad1989/gophKeeper/pkg/model/errs"
 	"github.com/golang-jwt/jwt/v4"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
@@ -73,16 +74,37 @@ func (a *UserApp) GenerateToken(id int32, expiredAt time.Time) (string, error) {
 	if id == 0 {
 		return "", errors.New("User.GenerateToken: user id is 0")
 	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, Claims{
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(expiredAt),
-		},
-		ID: id,
-	})
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
+		Claims{
+			RegisteredClaims: jwt.RegisteredClaims{
+				ExpiresAt: jwt.NewNumericDate(expiredAt),
+			},
+			ID: id,
+		})
 
 	tokenString, err := token.SignedString([]byte(secretKey))
 	if err != nil {
 		return "", fmt.Errorf("User.GenerateToken: token.SignedString: %w", err)
 	}
 	return tokenString, nil
+}
+
+func (a *UserApp) ExtractIDFromToken(t string) (int32, error) {
+	claims := &Claims{}
+	token, err := jwt.ParseWithClaims(t, claims,
+		func(t *jwt.Token) (interface{}, error) {
+			return []byte(secretKey), nil
+		})
+
+	if err != nil {
+		return 0, fmt.Errorf("user.ExtractIDFromToken: jwt.ParseWithClaims: %w", err)
+	}
+	if !token.Valid {
+		return 0, fmt.Errorf("user.ExtractIDFromToken: token.Valid: %w", errs.ErrTokenInvalid)
+	}
+	if claims.ID == 0 {
+		return 0, fmt.Errorf("user.ExtractIDFromToken: claims.ID = 0: %w", errs.ErrTokenNoUser)
+	}
+
+	return claims.ID, nil
 }

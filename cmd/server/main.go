@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -39,16 +38,22 @@ func main() {
 	userApp := user.NewApp(ctx, repo)
 	contentApp := content.NewApp(ctx, repo)
 
-	zlog.Debug(contentApp)
-	zlog.Debug(userApp)
 	authSrv := grpc.NewAuthServer(ctx, userApp)
-	contentsSrv := grpc.NewContentsServer(ctx)
+	contentsSrv := grpc.NewContentsServer(ctx, contentApp)
 
-	s := grpc.NewServer(ctx, authSrv, contentsSrv, cfg)
+	s, err := grpc.NewServerBuilder().
+		Context(ctx).
+		AuthServer(authSrv).
+		ContentsServer(contentsSrv).
+		Config(cfg).
+		UserApp(userApp).Build()
+	if err != nil {
+		log.Fatal(err)
+	}
 	ctx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
 	defer stop()
 	s.Run(ctx)
-	fmt.Println("server is working!")
+	zlog.Info("server is working!")
 	<-ctx.Done()
 	s.Stop()
 }

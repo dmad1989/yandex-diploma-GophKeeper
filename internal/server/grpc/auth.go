@@ -26,6 +26,7 @@ type UserApp interface {
 	GetByLogin(ctx context.Context, login string) (user *model.User, err error)
 	ValidatePassword(user *model.User, password string) (bool, error)
 	GenerateToken(id int32, expiredAt time.Time) (string, error)
+	ExtractIDFromToken(t string) (int32, error)
 }
 
 type authServ struct {
