@@ -3,6 +3,8 @@ package grpc
 import (
 	"context"
 	"errors"
+	"fmt"
+	"time"
 
 	"github.com/dmad1989/gophKeeper/pkg/model"
 	"github.com/dmad1989/gophKeeper/pkg/model/consts"
@@ -11,6 +13,7 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 var (
@@ -21,7 +24,8 @@ var (
 type UserApp interface {
 	Register(ctx context.Context, user *model.User) error
 	GetByLogin(ctx context.Context, login string) (user *model.User, err error)
-	ValidatePassword(cxt context.Context, user *model.User, password string) (bool, error)
+	ValidatePassword(user *model.User, password string) (bool, error)
+	GenerateToken(id int32, expiredAt time.Time) (string, error)
 }
 
 type authServ struct {
@@ -49,9 +53,11 @@ func (a *authServ) Register(ctx context.Context, ad *pb.AuthData) (*pb.TokenData
 		}
 		return nil, status.Errorf(codes.Internal, "auth.Register: %s", err.Error())
 	}
-	//todo token generation
-	// user.ID
-	return nil, nil
+	t, err := a.generateToken(user.ID)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "auth.Register: %s", err.Error())
+	}
+	return t, nil
 }
 func (a *authServ) Login(ctx context.Context, ad *pb.AuthData) (*pb.TokenData, error) {
 	err := validate(ad)
@@ -67,17 +73,29 @@ func (a *authServ) Login(ctx context.Context, ad *pb.AuthData) (*pb.TokenData, e
 		return nil, status.Errorf(codes.Internal, "auth.Login: %s", err.Error())
 	}
 
-	ok, err := a.userApp.ValidatePassword(ctx, user, ad.Password)
+	ok, err := a.userApp.ValidatePassword(user, ad.Password)
 
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "auth.Login: %s", err.Error())
 	}
 
 	if !ok {
-		return nil, status.Error(codes.InvalidArgument, "password is incorrect")
+		return nil, status.Error(codes.InvalidArgument, "auth.Login: password is incorrect")
 	}
-	//todo token generation
-	return nil, nil
+	t, err := a.generateToken(user.ID)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "auth.Login: %s", err.Error())
+	}
+	return t, nil
+}
+
+func (a *authServ) generateToken(id int32) (*pb.TokenData, error) {
+	expireAt := time.Now().UTC().Add(time.Hour * 3)
+	t, err := a.userApp.GenerateToken(id, expireAt)
+	if err != nil {
+		return nil, fmt.Errorf("auth.generateToken: %w", err)
+	}
+	return &pb.TokenData{Token: t, ExpireAt: timestamppb.New(expireAt)}, nil
 }
 
 func validate(a *pb.AuthData) error {

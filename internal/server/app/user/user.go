@@ -4,11 +4,17 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/dmad1989/gophKeeper/pkg/model"
 	"github.com/dmad1989/gophKeeper/pkg/model/consts"
+	"github.com/golang-jwt/jwt/v4"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
+)
+
+const (
+	secretKey = "wbhhFFd72C4gsecretkey"
 )
 
 type Repository interface {
@@ -19,6 +25,11 @@ type Repository interface {
 type UserApp struct {
 	log  *zap.SugaredLogger
 	repo Repository
+}
+
+type Claims struct {
+	jwt.RegisteredClaims
+	ID int32
 }
 
 func NewApp(ctx context.Context, r Repository) *UserApp {
@@ -40,15 +51,15 @@ func (a *UserApp) Register(ctx context.Context, user *model.User) error {
 	return nil
 }
 
-func (s *UserApp) GetByLogin(ctx context.Context, login string) (user *model.User, err error) {
-	user, err = s.repo.GetUser(ctx, login)
+func (a *UserApp) GetByLogin(ctx context.Context, login string) (user *model.User, err error) {
+	user, err = a.repo.GetUser(ctx, login)
 	if err != nil {
 		return nil, fmt.Errorf("User.GetByLogin: %w", err)
 	}
 	return
 }
 
-func (us *UserApp) ValidatePassword(cxt context.Context, user *model.User, password string) (bool, error) {
+func (a *UserApp) ValidatePassword(user *model.User, password string) (bool, error) {
 	if err := bcrypt.CompareHashAndPassword(user.HashPassword, []byte(password)); err != nil {
 		if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
 			return false, nil
@@ -56,4 +67,22 @@ func (us *UserApp) ValidatePassword(cxt context.Context, user *model.User, passw
 		return false, fmt.Errorf("User.ValidatePassword: bcrypt.CompareHashAndPassword  %w", err)
 	}
 	return true, nil
+}
+
+func (a *UserApp) GenerateToken(id int32, expiredAt time.Time) (string, error) {
+	if id == 0 {
+		return "", errors.New("User.GenerateToken: user id is 0")
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, Claims{
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(expiredAt),
+		},
+		ID: id,
+	})
+
+	tokenString, err := token.SignedString([]byte(secretKey))
+	if err != nil {
+		return "", fmt.Errorf("User.GenerateToken: token.SignedString: %w", err)
+	}
+	return tokenString, nil
 }
