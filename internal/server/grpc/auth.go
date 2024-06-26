@@ -36,7 +36,7 @@ type authServ struct {
 }
 
 func NewAuthServer(ctx context.Context, u UserApp) pb.AuthServer {
-	l := ctx.Value(consts.LoggerCtxKey).(*zap.SugaredLogger).Named("UserApp")
+	l := ctx.Value(consts.LoggerCtxKey).(*zap.SugaredLogger).Named("AuthServer")
 	return &authServ{log: l, userApp: u}
 }
 

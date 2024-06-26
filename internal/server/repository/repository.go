@@ -103,9 +103,14 @@ func (r repo) GetUser(ctx context.Context, login string) (*model.User, error) {
 }
 
 func (r repo) SaveContent(ctx context.Context, c model.Content) (int32, error) {
+	userID, err := getUserIdFromContext(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("repository.UpdateContent: getUserIdFromContext: %w", err)
+	}
+
 	id, err := r.queries.SaveContent(ctx,
 		db.SaveContentParams{
-			UserID: c.UserID,
+			UserID: userID,
 			Type:   c.Type,
 			Data:   c.Data,
 			Meta:   pgtype.Text{String: c.Meta, Valid: true},

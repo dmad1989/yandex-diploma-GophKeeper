@@ -19,13 +19,13 @@ import (
 const _ = grpc.SupportPackageIsVersion8
 
 const (
-	Contents_Save_FullMethodName            = "/gophkeeper.Contents/Save"
-	Contents_Delete_FullMethodName          = "/gophkeeper.Contents/Delete"
-	Contents_Update_FullMethodName          = "/gophkeeper.Contents/Update"
-	Contents_GetDescriptions_FullMethodName = "/gophkeeper.Contents/GetDescriptions"
-	Contents_Get_FullMethodName             = "/gophkeeper.Contents/Get"
-	Contents_SaveFile_FullMethodName        = "/gophkeeper.Contents/SaveFile"
-	Contents_GetFile_FullMethodName         = "/gophkeeper.Contents/GetFile"
+	Contents_Save_FullMethodName      = "/gophkeeper.Contents/Save"
+	Contents_Delete_FullMethodName    = "/gophkeeper.Contents/Delete"
+	Contents_Update_FullMethodName    = "/gophkeeper.Contents/Update"
+	Contents_GetByType_FullMethodName = "/gophkeeper.Contents/GetByType"
+	Contents_Get_FullMethodName       = "/gophkeeper.Contents/Get"
+	Contents_SaveFile_FullMethodName  = "/gophkeeper.Contents/SaveFile"
+	Contents_GetFile_FullMethodName   = "/gophkeeper.Contents/GetFile"
 )
 
 // ContentsClient is the client API for Contents service.
@@ -35,7 +35,7 @@ type ContentsClient interface {
 	Save(ctx context.Context, in *Content, opts ...grpc.CallOption) (*ContentId, error)
 	Delete(ctx context.Context, in *ContentId, opts ...grpc.CallOption) (*Empty, error)
 	Update(ctx context.Context, in *Content, opts ...grpc.CallOption) (*Empty, error)
-	GetDescriptions(ctx context.Context, in *Query, opts ...grpc.CallOption) (Contents_GetDescriptionsClient, error)
+	GetByType(ctx context.Context, in *Query, opts ...grpc.CallOption) (Contents_GetByTypeClient, error)
 	Get(ctx context.Context, in *ContentId, opts ...grpc.CallOption) (*Content, error)
 	SaveFile(ctx context.Context, opts ...grpc.CallOption) (Contents_SaveFileClient, error)
 	GetFile(ctx context.Context, in *ContentId, opts ...grpc.CallOption) (Contents_GetFileClient, error)
@@ -79,13 +79,13 @@ func (c *contentsClient) Update(ctx context.Context, in *Content, opts ...grpc.C
 	return out, nil
 }
 
-func (c *contentsClient) GetDescriptions(ctx context.Context, in *Query, opts ...grpc.CallOption) (Contents_GetDescriptionsClient, error) {
+func (c *contentsClient) GetByType(ctx context.Context, in *Query, opts ...grpc.CallOption) (Contents_GetByTypeClient, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &Contents_ServiceDesc.Streams[0], Contents_GetDescriptions_FullMethodName, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &Contents_ServiceDesc.Streams[0], Contents_GetByType_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &contentsGetDescriptionsClient{ClientStream: stream}
+	x := &contentsGetByTypeClient{ClientStream: stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -95,17 +95,17 @@ func (c *contentsClient) GetDescriptions(ctx context.Context, in *Query, opts ..
 	return x, nil
 }
 
-type Contents_GetDescriptionsClient interface {
-	Recv() (*ContentDescription, error)
+type Contents_GetByTypeClient interface {
+	Recv() (*Content, error)
 	grpc.ClientStream
 }
 
-type contentsGetDescriptionsClient struct {
+type contentsGetByTypeClient struct {
 	grpc.ClientStream
 }
 
-func (x *contentsGetDescriptionsClient) Recv() (*ContentDescription, error) {
-	m := new(ContentDescription)
+func (x *contentsGetByTypeClient) Recv() (*Content, error) {
+	m := new(Content)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -197,7 +197,7 @@ type ContentsServer interface {
 	Save(context.Context, *Content) (*ContentId, error)
 	Delete(context.Context, *ContentId) (*Empty, error)
 	Update(context.Context, *Content) (*Empty, error)
-	GetDescriptions(*Query, Contents_GetDescriptionsServer) error
+	GetByType(*Query, Contents_GetByTypeServer) error
 	Get(context.Context, *ContentId) (*Content, error)
 	SaveFile(Contents_SaveFileServer) error
 	GetFile(*ContentId, Contents_GetFileServer) error
@@ -217,8 +217,8 @@ func (UnimplementedContentsServer) Delete(context.Context, *ContentId) (*Empty, 
 func (UnimplementedContentsServer) Update(context.Context, *Content) (*Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Update not implemented")
 }
-func (UnimplementedContentsServer) GetDescriptions(*Query, Contents_GetDescriptionsServer) error {
-	return status.Errorf(codes.Unimplemented, "method GetDescriptions not implemented")
+func (UnimplementedContentsServer) GetByType(*Query, Contents_GetByTypeServer) error {
+	return status.Errorf(codes.Unimplemented, "method GetByType not implemented")
 }
 func (UnimplementedContentsServer) Get(context.Context, *ContentId) (*Content, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Get not implemented")
@@ -296,24 +296,24 @@ func _Contents_Update_Handler(srv interface{}, ctx context.Context, dec func(int
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Contents_GetDescriptions_Handler(srv interface{}, stream grpc.ServerStream) error {
+func _Contents_GetByType_Handler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(Query)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(ContentsServer).GetDescriptions(m, &contentsGetDescriptionsServer{ServerStream: stream})
+	return srv.(ContentsServer).GetByType(m, &contentsGetByTypeServer{ServerStream: stream})
 }
 
-type Contents_GetDescriptionsServer interface {
-	Send(*ContentDescription) error
+type Contents_GetByTypeServer interface {
+	Send(*Content) error
 	grpc.ServerStream
 }
 
-type contentsGetDescriptionsServer struct {
+type contentsGetByTypeServer struct {
 	grpc.ServerStream
 }
 
-func (x *contentsGetDescriptionsServer) Send(m *ContentDescription) error {
+func (x *contentsGetByTypeServer) Send(m *Content) error {
 	return x.ServerStream.SendMsg(m)
 }
 
@@ -408,8 +408,8 @@ var Contents_ServiceDesc = grpc.ServiceDesc{
 	},
 	Streams: []grpc.StreamDesc{
 		{
-			StreamName:    "GetDescriptions",
-			Handler:       _Contents_GetDescriptions_Handler,
+			StreamName:    "GetByType",
+			Handler:       _Contents_GetByType_Handler,
 			ServerStreams: true,
 		},
 		{

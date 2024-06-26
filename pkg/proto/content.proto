@@ -21,12 +21,6 @@ message Content {
   bytes data = 4;
 }
 
-message ContentDescription {
-  sint32 id = 1;
-  TYPE type = 2;
-  bytes meta = 3;
-}
-
 message ContentId {
   sint32 id = 1;
 }
@@ -44,7 +38,7 @@ service Contents {
   rpc Save(Content) returns (ContentId);
   rpc Delete(ContentId) returns (Empty);
   rpc Update(Content) returns (Empty);
-  rpc GetDescriptions(Query) returns (stream ContentDescription);
+  rpc GetByType(Query) returns (stream Content);
   rpc Get(ContentId) returns (Content);
   rpc SaveFile(stream FileChunk) returns (ContentId);
   rpc GetFile(ContentId) returns (stream FileChunk);
