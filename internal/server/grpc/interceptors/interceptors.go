@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/dmad1989/gophKeeper/pkg/model"
 	"github.com/dmad1989/gophKeeper/pkg/model/consts"
 	"github.com/dmad1989/gophKeeper/pkg/model/errs"
 	"go.uber.org/zap"
@@ -55,6 +56,31 @@ func (tp *TokenProvider) TokenInterceptor() grpc.UnaryServerInterceptor {
 			return handler(ctxWithUserId, req)
 		}
 		return handler(ctx, req)
+	}
+}
+
+func (tp *TokenProvider) TokenStreamInterceptor() grpc.StreamServerInterceptor {
+	return func(
+		srv interface{},
+		ss grpc.ServerStream,
+		info *grpc.StreamServerInfo,
+		handler grpc.StreamHandler,
+	) error {
+		if !tp.isSecureMethod(info.FullMethod) {
+			userId, err := tp.extractID(ss.Context())
+			if err != nil {
+				tp.log.Errorf("failed to extract userId from request token: %tp", err)
+				return errs.TokenError{Err: err}
+			}
+			ctxWithUserId := context.WithValue(ss.Context(), consts.UserCtxKey, userId)
+			tp.log.Infof("Retrieved from token userId: %d", userId)
+			ss.Context()
+			return handler(srv, &model.ServerStreamWithCtx{
+				ServerStream: ss,
+				Ctx:          ctxWithUserId,
+			})
+		}
+		return handler(srv, ss)
 	}
 }
 

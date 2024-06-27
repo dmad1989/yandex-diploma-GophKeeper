@@ -91,6 +91,7 @@ func (sb *ServerBuilder) Build() (*Servers, error) {
 	tp := interceptors.NewTokenProvider(sb.ctx, sb.app, "")
 	s := grpc.NewServer(
 		grpc.UnaryInterceptor(tp.TokenInterceptor()),
+		grpc.StreamInterceptor(tp.TokenStreamInterceptor()),
 	)
 	return &Servers{
 		grpc:     s,

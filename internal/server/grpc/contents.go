@@ -90,7 +90,29 @@ func (c *contentsServer) Get(ctx context.Context, cont *pb.ContentId) (*pb.Conte
 	}, nil
 }
 
-// todo func (c *contentsServer) GetByType(q *Query, a pb.Contents_GetByTypeServer) error {}
+func (c *contentsServer) GetByType(q *pb.Query, s pb.Contents_GetByTypeServer) error {
+	t := enum.ContentType(q.ContentType)
+
+	contents, err := c.app.GetUserContent(s.Context(), t)
+	if err != nil {
+		return status.Errorf(codes.Internal, "contentServ.GetByType: %s", err.Error())
+	}
+
+	for _, content := range contents {
+		err := s.Send(&pb.Content{
+			Id:   content.ID,
+			Type: pb.TYPE(content.Type),
+			Meta: content.Meta,
+			Data: content.Data,
+		})
+		if err != nil {
+			return status.Errorf(codes.Internal, "contentServ.GetByType: s.Send:  %s", err.Error())
+		}
+	}
+
+	return nil
+}
+
 //todo	SaveFile(Contents_SaveFileServer) error
 //todo	GetFile(*ContentId, Contents_GetFileServer) error
 
