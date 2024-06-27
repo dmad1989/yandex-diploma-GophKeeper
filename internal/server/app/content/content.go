@@ -97,16 +97,16 @@ func (a ContentApp) Get(ctx context.Context, id int32) (*model.Content, error) {
 
 func (a ContentApp) validateContent(c *model.Content) error {
 	if len(c.Data) == 0 {
-		return errors.New("content.Data in iempty")
+		return errors.New("content.Data is iempty")
 	}
 	if c.Meta == "" {
-		return errors.New("content.Meta in iempty")
+		return errors.New("content.Meta is iempty")
 	}
 	if c.Type == 0 {
-		return errors.New("content.Type in iempty")
+		return errors.New("content.Type is iempty")
 	}
 	if c.UserID == 0 {
-		return errors.New("content.UserID in iempty")
+		return errors.New("content.UserID is iempty")
 	}
 	return nil
 }

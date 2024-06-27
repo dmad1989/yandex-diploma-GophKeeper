@@ -2,12 +2,17 @@ package errs
 
 import "errors"
 
-var ErrUserAlreadyExist = errors.New("user already exist")
-var ErrUserNotFound = errors.New("user not found")
-var ErrResNotFound = errors.New("resource not found")
-var ErrResTooBig = errors.New("resource is too big")
+var (
+	ErrUserAlreadyExist = errors.New("user already exist")
+	ErrUserNotFound     = errors.New("user not found")
+	ErrResNotFound      = errors.New("resource not found")
+	ErrResTooBig        = errors.New("resource is too big")
 
-var ErrTokenNotFound = errors.New("unauthorized")
-var ErrTokenInvalid = errors.New("token invalid")
-var ErrTokenNoUser = errors.New("token without userID")
-var ErrReadMD = errors.New("read request metadata")
+	ErrTokenNotFound = errors.New("unauthorized")
+	ErrTokenInvalid  = errors.New("token invalid")
+	ErrTokenNoUser   = errors.New("token without userID")
+	ErrReadMD        = errors.New("read request metadata")
+
+	ErrNoCtxUser     = errors.New("no userID in context")
+	ErrNotIntCtxUser = errors.New("wrong type of userID in context")
+)

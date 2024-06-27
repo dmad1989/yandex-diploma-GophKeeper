@@ -10,6 +10,7 @@ import (
 	"github.com/dmad1989/gophKeeper/internal/server/repository/db"
 	"github.com/dmad1989/gophKeeper/pkg/model"
 	"github.com/dmad1989/gophKeeper/pkg/model/consts"
+	"github.com/dmad1989/gophKeeper/pkg/model/enum"
 	"github.com/dmad1989/gophKeeper/pkg/model/errs"
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgerrcode"
@@ -23,9 +24,7 @@ import (
 
 var (
 	//go:embed migrations/*.sql
-	embedMigrations  embed.FS
-	ErrNoCtxUser     = errors.New("no userID in context")
-	ErrNotIntCtxUser = errors.New("wrong type of userID in context")
+	embedMigrations embed.FS
 )
 
 type Config interface {
@@ -103,15 +102,11 @@ func (r repo) GetUser(ctx context.Context, login string) (*model.User, error) {
 }
 
 func (r repo) SaveContent(ctx context.Context, c model.Content) (int32, error) {
-	userID, err := getUserIdFromContext(ctx)
-	if err != nil {
-		return 0, fmt.Errorf("repository.UpdateContent: getUserIdFromContext: %w", err)
-	}
 
 	id, err := r.queries.SaveContent(ctx,
 		db.SaveContentParams{
-			UserID: userID,
-			Type:   c.Type,
+			UserID: c.UserID,
+			Type:   int32(c.Type),
 			Data:   c.Data,
 			Meta:   pgtype.Text{String: c.Meta, Valid: true},
 		})
@@ -134,7 +129,7 @@ func (r repo) GetUserContentByID(ctx context.Context, id int32) (*model.Content,
 	return &model.Content{
 		ID:     dbc.ID,
 		UserID: dbc.UserID,
-		Type:   dbc.Type,
+		Type:   enum.ContentType(dbc.Type),
 		Data:   dbc.Data,
 		Meta:   dbc.Meta.String}, nil
 }
@@ -143,7 +138,7 @@ func (r repo) UpdateContent(ctx context.Context, c *model.Content) error {
 	err := r.queries.UpdateContent(ctx, db.UpdateContentParams{
 		ID:     c.ID,
 		UserID: c.UserID,
-		Type:   c.Type,
+		Type:   int32(c.Type),
 		Data:   c.Data,
 		Meta:   pgtype.Text{String: c.Meta, Valid: true},
 	})
@@ -171,7 +166,7 @@ func (r repo) GetUserContentByType(ctx context.Context, t int32) ([]*model.Conte
 		res = append(res, &model.Content{
 			ID:     c.ID,
 			UserID: c.UserID,
-			Type:   c.Type,
+			Type:   enum.ContentType(c.Type),
 			Data:   c.Data,
 			Meta:   c.Meta.String,
 		})
@@ -195,7 +190,7 @@ func (r repo) GetAllUserContent(ctx context.Context) ([]*model.Content, error) {
 		res = append(res, &model.Content{
 			ID:     c.ID,
 			UserID: c.UserID,
-			Type:   c.Type,
+			Type:   enum.ContentType(c.Type),
 			Data:   c.Data,
 			Meta:   c.Meta.String,
 		})
@@ -214,11 +209,11 @@ func (r repo) DeleteContent(ctx context.Context, id int32) (err error) {
 func getUserIdFromContext(ctx context.Context) (int32, error) {
 	userIDCtx := ctx.Value(consts.UserCtxKey)
 	if userIDCtx == "" {
-		return 0, ErrNoCtxUser
+		return 0, errs.ErrNoCtxUser
 	}
 	userID, ok := userIDCtx.(int32)
 	if !ok {
-		return 0, ErrNotIntCtxUser
+		return 0, errs.ErrNotIntCtxUser
 	}
 	return userID, nil
 }
