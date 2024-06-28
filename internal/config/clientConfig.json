@@ -1,3 +1,4 @@
 {
-    "server_address": ":3200"
+    "server_address": ":3200",
+    "crypto_key_path": ""
 }

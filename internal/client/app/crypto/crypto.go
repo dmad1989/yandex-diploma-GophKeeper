@@ -13,14 +13,18 @@ import (
 
 const blockLength = 128
 
+type Configer interface {
+	GetPrivateKey() *rsa.PrivateKey
+}
+
 type cryptoApp struct {
 	log        *zap.SugaredLogger
 	privateKey *rsa.PrivateKey
 }
 
-func New(ctx context.Context, key rsa.PrivateKey) *cryptoApp {
+func New(ctx context.Context, cfg Configer) *cryptoApp {
 	l := ctx.Value(consts.LoggerCtxKey).(*zap.SugaredLogger).Named("cryptoApp")
-	return &cryptoApp{log: l, privateKey: &key}
+	return &cryptoApp{log: l, privateKey: cfg.GetPrivateKey()}
 }
 
 func (c *cryptoApp) Decrypt(data []byte) ([]byte, error) {
@@ -54,7 +58,7 @@ func (c *cryptoApp) Encrypt(data []byte) ([]byte, error) {
 		if nextBlockLength > len(data) {
 			nextBlockLength = len(data)
 		}
-		block, err := rsa.EncryptOAEP(sha256.New(), rand.Reader, &c.privateKey.PublicKey, data[i:nextBlockLength], []byte("yandex"))
+		block, err := rsa.EncryptOAEP(sha256.New(), rand.Reader, &c.privateKey.PublicKey, data[i:nextBlockLength], []byte("gohkeeper"))
 		if err != nil {
 			return nil, fmt.Errorf("cryptoApp.Encrypt: rsa.EncryptOAEP: %w", err)
 		}

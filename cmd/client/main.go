@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"crypto/rsa"
 	"log"
 
 	"github.com/dmad1989/gophKeeper/internal/client/app/auth"
@@ -33,10 +32,11 @@ func main() {
 	tokenHolder := &model.TokenHolder{}
 
 	conn, err := grpc.NewConnection(ctx, cfg, tokenHolder)
-
+	if err != nil {
+		log.Fatal(err)
+	}
 	authApp := auth.New(ctx, conn, tokenHolder)
-	//todo privatekey
-	cryptoApp := crypto.New(ctx, rsa.PrivateKey{})
+	cryptoApp := crypto.New(ctx, cfg)
 	contentApp := content.New(ctx, conn, cryptoApp)
 	//TODO
 	cli.New(ctx, authApp, contentApp)
