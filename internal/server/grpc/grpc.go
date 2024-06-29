@@ -14,6 +14,11 @@ import (
 	"google.golang.org/grpc/credentials"
 )
 
+const (
+	registerMethod = "/gophkeeper.Auth/Register"
+	loginMethod    = "/gophkeeper.Auth/Login"
+)
+
 type Configer interface {
 	GetServerAddress() string
 }
@@ -95,7 +100,7 @@ func (sb *ServerBuilder) Build() (*Servers, error) {
 		return nil, fmt.Errorf("ServerBuilder.build: %w", err)
 	}
 
-	tp := interceptors.NewTokenProvider(sb.ctx, sb.app, "")
+	tp := interceptors.NewTokenProvider(sb.ctx, sb.app, registerMethod, loginMethod)
 
 	s := grpc.NewServer(
 		grpc.Creds(creds),
