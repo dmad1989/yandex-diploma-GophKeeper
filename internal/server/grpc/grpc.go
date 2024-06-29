@@ -11,6 +11,7 @@ import (
 	pb "github.com/dmad1989/gophKeeper/pkg/proto/gen"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 )
 
 type Configer interface {
@@ -88,8 +89,16 @@ func (sb *ServerBuilder) Build() (*Servers, error) {
 		return nil, fmt.Errorf("ServerBuilder.build: %w", err)
 	}
 	l := sb.ctx.Value(consts.LoggerCtxKey).(*zap.SugaredLogger).Named("grpc")
+
+	creds, err := loadTLSCredentials()
+	if err != nil {
+		return nil, fmt.Errorf("ServerBuilder.build: %w", err)
+	}
+
 	tp := interceptors.NewTokenProvider(sb.ctx, sb.app, "")
+
 	s := grpc.NewServer(
+		grpc.Creds(creds),
 		grpc.UnaryInterceptor(tp.TokenInterceptor()),
 		grpc.StreamInterceptor(tp.TokenStreamInterceptor()),
 	)
@@ -121,4 +130,13 @@ func (s *Servers) Run(ctx context.Context) {
 
 func (s *Servers) Stop() {
 	s.grpc.GracefulStop()
+}
+
+func loadTLSCredentials() (credentials.TransportCredentials, error) {
+	cred, err := credentials.NewServerTLSFromFile("cert/server-cert.pem", "cert/server-key.pem")
+	if err != nil {
+		return nil, fmt.Errorf("loadTLSCredentials: credentials.NewServerTLSFromFile: %w", err)
+	}
+
+	return cred, nil
 }
