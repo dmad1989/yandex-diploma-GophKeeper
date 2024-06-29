@@ -109,6 +109,12 @@ func (a contentApp) Get(ctx context.Context, id int32) (*contents.Item, error) {
 	return res, nil
 }
 
-// TODO
-// func (a contentApp) SaveFile(ctx context.Context, opts ...grpc.CallOption) (pb.Contents_SaveFileClient, error)
-// func (a contentApp) GetFile(ctx context.Context, in *pb.ContentId, opts ...grpc.CallOption) (pb.Contents_GetFileClient, error)
+func (a contentApp) SaveFile(ctx context.Context, path, meta string) (int32, error) {
+	//todo
+	return 0, nil
+}
+
+func (a contentApp) GetFile(ctx context.Context, id int32) (string, error) {
+	// todo
+	return "", nil
+}

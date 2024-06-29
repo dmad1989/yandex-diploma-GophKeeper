@@ -3,6 +3,9 @@ package main
 import (
 	"context"
 	"log"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/dmad1989/gophKeeper/internal/client/app/auth"
 	"github.com/dmad1989/gophKeeper/internal/client/app/content"
@@ -38,7 +41,10 @@ func main() {
 	authApp := auth.New(ctx, conn, tokenHolder)
 	cryptoApp := crypto.New(ctx, cfg)
 	contentApp := content.New(ctx, conn, cryptoApp)
-	//TODO
-	cli.New(ctx, authApp, contentApp)
+
+	cli := cli.New(ctx, authApp, contentApp)
+	ctx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
+	defer stop()
+	cli.Start(ctx)
 	<-ctx.Done()
 }
