@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/dmad1989/gophKeeper/internal/client/grpc/interceptors"
-	"github.com/dmad1989/gophKeeper/pkg/model"
+	"github.com/dmad1989/gophKeeper/pkg/model/client"
 	"google.golang.org/grpc"
 )
 
@@ -13,7 +13,7 @@ type Configer interface {
 	GetServerAddress() string
 }
 
-func NewConnection(ctx context.Context, cfg Configer, th *model.TokenHolder) (*grpc.ClientConn, error) {
+func NewConnection(ctx context.Context, cfg Configer, th *client.TokenHolder) (*grpc.ClientConn, error) {
 	tp := interceptors.NewRequestTokenProvider(ctx, th)
 	conn, err := grpc.NewClient(
 		cfg.GetServerAddress(),

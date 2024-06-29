@@ -11,7 +11,7 @@ import (
 	"github.com/dmad1989/gophKeeper/internal/client/grpc"
 	"github.com/dmad1989/gophKeeper/internal/config"
 	"github.com/dmad1989/gophKeeper/pkg/logging"
-	"github.com/dmad1989/gophKeeper/pkg/model"
+	"github.com/dmad1989/gophKeeper/pkg/model/client"
 	"github.com/dmad1989/gophKeeper/pkg/model/consts"
 )
 
@@ -29,7 +29,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	tokenHolder := &model.TokenHolder{}
+	tokenHolder := &client.TokenHolder{}
 
 	conn, err := grpc.NewConnection(ctx, cfg, tokenHolder)
 	if err != nil {

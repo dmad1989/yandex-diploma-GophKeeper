@@ -3,7 +3,7 @@ package interceptors
 import (
 	"context"
 
-	"github.com/dmad1989/gophKeeper/pkg/model"
+	"github.com/dmad1989/gophKeeper/pkg/model/client"
 	"github.com/dmad1989/gophKeeper/pkg/model/consts"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -12,10 +12,10 @@ import (
 
 type requestTokenProvider struct {
 	log         *zap.SugaredLogger
-	tokenHolder *model.TokenHolder
+	tokenHolder *client.TokenHolder
 }
 
-func NewRequestTokenProvider(ctx context.Context, th *model.TokenHolder) *requestTokenProvider {
+func NewRequestTokenProvider(ctx context.Context, th *client.TokenHolder) *requestTokenProvider {
 	l := ctx.Value(consts.LoggerCtxKey).(*zap.SugaredLogger).Named("RequestTokenProvider")
 	return &requestTokenProvider{log: l, tokenHolder: th}
 }

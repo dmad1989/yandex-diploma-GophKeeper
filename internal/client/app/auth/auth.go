@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/dmad1989/gophKeeper/pkg/model"
+	"github.com/dmad1989/gophKeeper/pkg/model/client"
 	"github.com/dmad1989/gophKeeper/pkg/model/consts"
 	pb "github.com/dmad1989/gophKeeper/pkg/proto/gen"
 	"go.uber.org/zap"
@@ -14,10 +14,10 @@ import (
 type authApp struct {
 	log         *zap.SugaredLogger
 	client      pb.AuthClient
-	tokenHolder *model.TokenHolder
+	tokenHolder *client.TokenHolder
 }
 
-func New(ctx context.Context, conn *grpc.ClientConn, t *model.TokenHolder) *authApp {
+func New(ctx context.Context, conn *grpc.ClientConn, t *client.TokenHolder) *authApp {
 	l := ctx.Value(consts.LoggerCtxKey).(*zap.SugaredLogger).Named("Auth")
 	return &authApp{log: l, client: pb.NewAuthClient(conn), tokenHolder: t}
 }

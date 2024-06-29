@@ -1,4 +1,4 @@
-package model
+package client
 
 type TokenHolder struct {
 	token string
