@@ -120,11 +120,15 @@ func (r repo) SaveContent(ctx context.Context, c model.Content) (int32, error) {
 func (r repo) GetUserContentByID(ctx context.Context, id int32) (*model.Content, error) {
 	userID, err := getUserIdFromContext(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("repository.UpdateContent: getUserIdFromContext: %w", err)
+		return nil, fmt.Errorf("repository.GetUserContentByID: getUserIdFromContext: %w", err)
 	}
 	dbc, err := r.queries.GetUserContentByID(ctx, db.GetUserContentByIDParams{ID: id, UserID: userID})
+
 	if err != nil {
-		return nil, fmt.Errorf("repository.UpdateContent: queries: %w", err)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, errs.ErrContNotFound
+		}
+		return nil, fmt.Errorf("repository.GetUserContentByID: queries: %w", err)
 	}
 	return &model.Content{
 		ID:     dbc.ID,
@@ -146,6 +150,9 @@ func (r repo) UpdateContent(ctx context.Context, c *model.Content) error {
 	})
 
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return errs.ErrContNotFound
+		}
 		return fmt.Errorf("repository.UpdateContent: queries: %w", err)
 	}
 	return nil
@@ -159,6 +166,9 @@ func (r repo) GetUserContentByType(ctx context.Context, t int32) ([]*model.Conte
 
 	dbc, err := r.queries.GetUserContentByType(ctx, db.GetUserContentByTypeParams{UserID: userID, Type: t})
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, errs.ErrContNotFound
+		}
 		return nil, fmt.Errorf("repository.GetUserContentByType: queries: %w", err)
 	}
 
@@ -184,6 +194,9 @@ func (r repo) GetAllUserContent(ctx context.Context) ([]*model.Content, error) {
 	}
 	dbc, err := r.queries.GetAllUserContent(ctx, userID)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, errs.ErrContNotFound
+		}
 		return nil, fmt.Errorf("repository.GetAllUserContent: queries: %w", err)
 	}
 
@@ -205,6 +218,10 @@ func (r repo) GetAllUserContent(ctx context.Context) ([]*model.Content, error) {
 func (r repo) DeleteContent(ctx context.Context, id int32) (err error) {
 	err = r.queries.DeleteContent(ctx, id)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			err = errs.ErrContNotFound
+			return
+		}
 		err = fmt.Errorf("repository.DeleteContent: queries: %w", err)
 	}
 	return

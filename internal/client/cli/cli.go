@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -159,7 +160,7 @@ func (c *cli) handleHelp(ctx context.Context, args []string) (string, error) {
 func (c *cli) handleLogin(ctx context.Context, args []string) (string, error) {
 	login := c.readString("input username")
 	if login == "" {
-		return "", fmt.Errorf("cli.handleLogin: %w", errs.ErrInputLogin)
+		return "", errs.ErrInputLogin
 	}
 	password, err := c.readPassword()
 	if err != nil {
@@ -198,6 +199,9 @@ func (c *cli) handleGet(ctx context.Context, args []string) (string, error) {
 	}
 	desc, err := c.content.Get(ctx, int32(id64))
 	if err != nil {
+		if errors.Is(err, errs.ErrContNotFound) {
+			return "", errs.ErrContNotFound
+		}
 		return "", fmt.Errorf("cli.handleGet: %w", err)
 	}
 
@@ -214,6 +218,9 @@ func (c *cli) handleList(ctx context.Context, args []string) (string, error) {
 
 	cs, err := c.content.GetByType(ctx, cType)
 	if err != nil {
+		if errors.Is(err, errs.ErrContNotFound) {
+			return "", errs.ErrContNotFound
+		}
 		return "", fmt.Errorf("cli.handleList: %w", err)
 	}
 	var writer strings.Builder
@@ -308,6 +315,9 @@ func (c *cli) handleUpdate(ctx context.Context, args []string) (res string, err 
 	}
 
 	if err != nil {
+		if errors.Is(err, errs.ErrContNotFound) {
+			return "", errs.ErrContNotFound
+		}
 		err = fmt.Errorf("cli.handleUpdate: %w", err)
 		return
 	}
@@ -324,6 +334,9 @@ func (c *cli) handleDelete(ctx context.Context, args []string) (string, error) {
 	}
 	err = c.content.Delete(ctx, int32(id64))
 	if err != nil {
+		if errors.Is(err, errs.ErrContNotFound) {
+			return "", errs.ErrContNotFound
+		}
 		return "", fmt.Errorf("cli.handleDelete: %w", err)
 	}
 	return "deleted", nil
@@ -442,7 +455,8 @@ func (c *cli) readPassword() (string, error) {
 	fmt.Print("-> ")
 	bytePassword, err := term.ReadPassword(int(syscall.Stdin))
 	if err != nil {
-		return "", fmt.Errorf("cli.readPassword: term.ReadPassword: %w", err)
+		c.log.Errorw("readPassword: term.ReadPassword:", zap.Error(err))
+		return "", errors.New("internal, try again")
 	}
 	if len(bytePassword) == 0 {
 		return "", errs.ErrInputPassword

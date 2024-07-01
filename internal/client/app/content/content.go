@@ -13,9 +13,12 @@ import (
 	"github.com/dmad1989/gophKeeper/pkg/model/client/contents"
 	"github.com/dmad1989/gophKeeper/pkg/model/consts"
 	"github.com/dmad1989/gophKeeper/pkg/model/enum"
+	"github.com/dmad1989/gophKeeper/pkg/model/errs"
 	pb "github.com/dmad1989/gophKeeper/pkg/proto/gen"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type CryptoWorker interface {
@@ -60,6 +63,11 @@ func (a contentApp) Save(ctx context.Context, conType enum.ContentType, data []b
 func (a contentApp) Delete(ctx context.Context, id int32) error {
 	_, err := a.client.Delete(ctx, &pb.ContentId{Id: id})
 	if err != nil {
+		if e, ok := status.FromError(err); ok {
+			if e.Code() == codes.NotFound {
+				return errs.ErrContNotFound
+			}
+		}
 		return fmt.Errorf("ContentApp.Delete: %w", err)
 	}
 	return nil
@@ -84,6 +92,11 @@ func (a contentApp) Update(ctx context.Context, id int32, contype enum.ContentTy
 func (a contentApp) GetByType(ctx context.Context, contype enum.ContentType) ([]*model.Content, error) {
 	s, err := a.client.GetByType(ctx, &pb.Query{ContentType: pb.TYPE(contype)})
 	if err != nil {
+		if e, ok := status.FromError(err); ok {
+			if e.Code() == codes.NotFound {
+				return nil, errs.ErrContNotFound
+			}
+		}
 		return nil, fmt.Errorf("ContentApp.GetByType: client.GetByType: %w", err)
 	}
 	results := make([]*model.Content, 0)
@@ -106,6 +119,11 @@ func (a contentApp) GetByType(ctx context.Context, contype enum.ContentType) ([]
 func (a contentApp) Get(ctx context.Context, id int32) (*contents.Item, error) {
 	content, err := a.client.Get(ctx, &pb.ContentId{Id: id})
 	if err != nil {
+		if e, ok := status.FromError(err); ok {
+			if e.Code() == codes.NotFound {
+				return nil, errs.ErrContNotFound
+			}
+		}
 		return nil, fmt.Errorf("ContentApp.Get: client.Get: %w", err)
 	}
 	decryptedData, err := a.crypto.Decrypt(content.Data)
@@ -181,6 +199,11 @@ func (a contentApp) SaveFile(ctx context.Context, path, meta string) (int32, err
 func (a contentApp) GetFile(ctx context.Context, id int32) (string, error) {
 	s, err := a.client.GetFile(ctx, &pb.ContentId{Id: id})
 	if err != nil {
+		if e, ok := status.FromError(err); ok {
+			if e.Code() == codes.NotFound {
+				return "", errs.ErrContNotFound
+			}
+		}
 		return "", fmt.Errorf("ContentApp.GetFile: %w", err)
 	}
 
@@ -208,6 +231,11 @@ Loop:
 		if err == io.EOF {
 			close(chunks)
 			break Loop
+		}
+		if e, ok := status.FromError(err); ok {
+			if e.Code() == codes.NotFound {
+				return "", errs.ErrContNotFound
+			}
 		}
 		if err != nil {
 			close(chunks)

@@ -3,11 +3,10 @@ package grpc
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
-	"os"
 
-	"github.com/dmad1989/gophKeeper/pkg/file"
 	"github.com/dmad1989/gophKeeper/pkg/model"
 	"github.com/dmad1989/gophKeeper/pkg/model/consts"
 	"github.com/dmad1989/gophKeeper/pkg/model/enum"
@@ -17,11 +16,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
-
-type FileWorker interface {
-	Save(path string, ch chan []byte) (chan error, error)
-	Read(path string, errCh chan error) (chan []byte, os.FileInfo, error)
-}
 
 type ContentApp interface {
 	Save(ctx context.Context, c *model.Content) (err error)
@@ -34,14 +28,12 @@ type ContentApp interface {
 type contentsServer struct {
 	log *zap.SugaredLogger
 	pb.UnimplementedContentsServer
-	app  ContentApp
-	file FileWorker
+	app ContentApp
 }
 
 func NewContentsServer(ctx context.Context, c ContentApp) pb.ContentsServer {
 	l := ctx.Value(consts.LoggerCtxKey).(*zap.SugaredLogger).Named("ContentsServer")
-	f := file.New(ctx)
-	return &contentsServer{log: l, app: c, file: f}
+	return &contentsServer{log: l, app: c}
 }
 
 func (c *contentsServer) Save(ctx context.Context, content *pb.Content) (*pb.ContentId, error) {
@@ -75,6 +67,9 @@ func (c *contentsServer) Update(ctx context.Context, content *pb.Content) (*pb.E
 	}
 
 	if err = c.app.Update(ctx, mContent); err != nil {
+		if errors.Is(err, errs.ErrContNotFound) {
+			return nil, status.Error(codes.NotFound, err.Error())
+		}
 		return nil, status.Errorf(codes.Internal, "contentServ.Update: %s", err.Error())
 	}
 	return &pb.Empty{}, nil
@@ -82,6 +77,9 @@ func (c *contentsServer) Update(ctx context.Context, content *pb.Content) (*pb.E
 
 func (c *contentsServer) Delete(ctx context.Context, cont *pb.ContentId) (*pb.Empty, error) {
 	if err := c.app.Delete(ctx, cont.Id); err != nil {
+		if errors.Is(err, errs.ErrContNotFound) {
+			return nil, status.Error(codes.NotFound, err.Error())
+		}
 		return nil, status.Errorf(codes.Internal, "contentServ.Delete: %s", err.Error())
 	}
 	return &pb.Empty{}, nil
@@ -90,6 +88,9 @@ func (c *contentsServer) Delete(ctx context.Context, cont *pb.ContentId) (*pb.Em
 func (c *contentsServer) Get(ctx context.Context, cont *pb.ContentId) (*pb.Content, error) {
 	res, err := c.app.Get(ctx, cont.Id)
 	if err != nil {
+		if errors.Is(err, errs.ErrContNotFound) {
+			return nil, status.Error(codes.NotFound, err.Error())
+		}
 		return nil, status.Errorf(codes.Internal, "contentServ.Get: %s", err.Error())
 	}
 
@@ -106,6 +107,9 @@ func (c *contentsServer) GetByType(q *pb.Query, s pb.Contents_GetByTypeServer) e
 
 	contents, err := c.app.GetUserContent(s.Context(), t)
 	if err != nil {
+		if errors.Is(err, errs.ErrContNotFound) {
+			return status.Error(codes.NotFound, err.Error())
+		}
 		return status.Errorf(codes.Internal, "contentServ.GetByType: %s", err.Error())
 	}
 
@@ -179,6 +183,9 @@ func (c *contentsServer) GetFile(cID *pb.ContentId, s pb.Contents_GetFileServer)
 	ctx := s.Context()
 	content, err := c.app.Get(ctx, cID.Id)
 	if err != nil {
+		if errors.Is(err, errs.ErrContNotFound) {
+			return status.Error(codes.NotFound, err.Error())
+		}
 		return status.Error(codes.Internal, fmt.Errorf("contentServ.GetFile:  %w", err).Error())
 	}
 

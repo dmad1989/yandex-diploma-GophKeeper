@@ -5,8 +5,8 @@ import "errors"
 var (
 	ErrUserAlreadyExist = errors.New("user already exist")
 	ErrUserNotFound     = errors.New("user not found")
-	ErrResNotFound      = errors.New("content not found")
-	ErrResTooBig        = errors.New("content is too big")
+	ErrContNotFound     = errors.New("content not found")
+	ErrContTooBig       = errors.New("content is too big")
 
 	ErrTokenNotFound = errors.New("unauthorized")
 	ErrTokenInvalid  = errors.New("token invalid")
