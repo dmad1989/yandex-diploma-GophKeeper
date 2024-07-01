@@ -4,23 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/dmad1989/gophKeeper/pkg/model/consts"
 	"github.com/dmad1989/gophKeeper/pkg/model/enum"
 	pb "github.com/dmad1989/gophKeeper/pkg/proto/gen"
-)
-
-var (
-	ArgToType = map[string]enum.ContentType{
-		consts.BankCard:      enum.BankCard,
-		consts.LoginPassword: enum.LoginPassword,
-		consts.File:          enum.File,
-	}
-
-	TypeToArg = map[enum.ContentType]string{
-		enum.BankCard:      consts.BankCard,
-		enum.LoginPassword: consts.LoginPassword,
-		enum.File:          consts.File,
-	}
 )
 
 type ItemFormatter interface {

@@ -41,28 +41,38 @@ func (q *Queries) DeleteContent(ctx context.Context, id int32) error {
 
 const getAllUserContent = `-- name: GetAllUserContent :many
 select
-	id,	user_id, "type", "data",	meta
+	id,	user_id, "type", "data",	meta, "desc"
 from
 	public."content" c
 where
     c.user_id = $1
 `
 
-func (q *Queries) GetAllUserContent(ctx context.Context, userID int32) ([]Content, error) {
+type GetAllUserContentRow struct {
+	ID     int32
+	UserID int32
+	Type   int32
+	Data   []byte
+	Meta   pgtype.Text
+	Desc   []byte
+}
+
+func (q *Queries) GetAllUserContent(ctx context.Context, userID int32) ([]GetAllUserContentRow, error) {
 	rows, err := q.db.Query(ctx, getAllUserContent, userID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Content
+	var items []GetAllUserContentRow
 	for rows.Next() {
-		var i Content
+		var i GetAllUserContentRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.UserID,
 			&i.Type,
 			&i.Data,
 			&i.Meta,
+			&i.Desc,
 		); err != nil {
 			return nil, err
 		}
@@ -94,7 +104,7 @@ func (q *Queries) GetUser(ctx context.Context, login string) (User, error) {
 
 const getUserContentByID = `-- name: GetUserContentByID :one
 select
-	id,	user_id, "type", "data",	meta
+	id,	user_id, "type", "data",	meta, "desc"
 from
 	public."content" c
 where
@@ -106,22 +116,32 @@ type GetUserContentByIDParams struct {
 	UserID int32
 }
 
-func (q *Queries) GetUserContentByID(ctx context.Context, arg GetUserContentByIDParams) (Content, error) {
+type GetUserContentByIDRow struct {
+	ID     int32
+	UserID int32
+	Type   int32
+	Data   []byte
+	Meta   pgtype.Text
+	Desc   []byte
+}
+
+func (q *Queries) GetUserContentByID(ctx context.Context, arg GetUserContentByIDParams) (GetUserContentByIDRow, error) {
 	row := q.db.QueryRow(ctx, getUserContentByID, arg.ID, arg.UserID)
-	var i Content
+	var i GetUserContentByIDRow
 	err := row.Scan(
 		&i.ID,
 		&i.UserID,
 		&i.Type,
 		&i.Data,
 		&i.Meta,
+		&i.Desc,
 	)
 	return i, err
 }
 
 const getUserContentByType = `-- name: GetUserContentByType :many
 select
-	id,	user_id, "type", "data",	meta
+	id,	user_id, "type", "data",	meta, "desc"
 from
 	public."content" c
 where
@@ -133,21 +153,31 @@ type GetUserContentByTypeParams struct {
 	Type   int32
 }
 
-func (q *Queries) GetUserContentByType(ctx context.Context, arg GetUserContentByTypeParams) ([]Content, error) {
+type GetUserContentByTypeRow struct {
+	ID     int32
+	UserID int32
+	Type   int32
+	Data   []byte
+	Meta   pgtype.Text
+	Desc   []byte
+}
+
+func (q *Queries) GetUserContentByType(ctx context.Context, arg GetUserContentByTypeParams) ([]GetUserContentByTypeRow, error) {
 	rows, err := q.db.Query(ctx, getUserContentByType, arg.UserID, arg.Type)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Content
+	var items []GetUserContentByTypeRow
 	for rows.Next() {
-		var i Content
+		var i GetUserContentByTypeRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.UserID,
 			&i.Type,
 			&i.Data,
 			&i.Meta,
+			&i.Desc,
 		); err != nil {
 			return nil, err
 		}
@@ -161,8 +191,8 @@ func (q *Queries) GetUserContentByType(ctx context.Context, arg GetUserContentBy
 
 const saveContent = `-- name: SaveContent :one
 INSERT INTO public.content(
-	user_id, type, data, meta)
-	VALUES ($1, $2, $3, $4)
+	user_id, type, data, meta, "desc")
+	VALUES ($1, $2, $3, $4, $5)
     RETURNING id
 `
 
@@ -171,6 +201,7 @@ type SaveContentParams struct {
 	Type   int32
 	Data   []byte
 	Meta   pgtype.Text
+	Desc   []byte
 }
 
 func (q *Queries) SaveContent(ctx context.Context, arg SaveContentParams) (int32, error) {
@@ -179,6 +210,7 @@ func (q *Queries) SaveContent(ctx context.Context, arg SaveContentParams) (int32
 		arg.Type,
 		arg.Data,
 		arg.Meta,
+		arg.Desc,
 	)
 	var id int32
 	err := row.Scan(&id)

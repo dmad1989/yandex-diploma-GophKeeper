@@ -37,6 +37,11 @@ func (a *ContentApp) Save(ctx context.Context, c *model.Content) (err error) {
 		return fmt.Errorf("ContentApp.Save: validateContent %w", err)
 	}
 
+	desc := enum.TypeToDesc[c.Type]
+	if desc != "" {
+		c.Desc = []byte(desc)
+	}
+
 	c.ID, err = a.repo.SaveContent(ctx, *c)
 	if err != nil {
 		return fmt.Errorf("ContentApp.Save:  %w", err)

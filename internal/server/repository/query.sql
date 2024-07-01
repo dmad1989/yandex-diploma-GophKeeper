@@ -15,8 +15,8 @@ where
 
 -- name: SaveContent :one
 INSERT INTO public.content(
-	user_id, type, data, meta)
-	VALUES ($1, $2, $3, $4)
+	user_id, type, data, meta, "desc")
+	VALUES ($1, $2, $3, $4, $5)
     RETURNING id;
 
 -- name: DeleteContent :exec
@@ -30,7 +30,7 @@ WHERE id=$5;
 
 -- name: GetUserContentByID :one
 select
-	id,	user_id, "type", "data",	meta
+	id,	user_id, "type", "data",	meta, "desc"
 from
 	public."content" c
 where
@@ -38,7 +38,7 @@ where
 
 -- name: GetAllUserContent :many
 select
-	id,	user_id, "type", "data",	meta
+	id,	user_id, "type", "data",	meta, "desc"
 from
 	public."content" c
 where
@@ -46,7 +46,7 @@ where
 
 -- name: GetUserContentByType :many
 select
-	id,	user_id, "type", "data",	meta
+	id,	user_id, "type", "data",	meta, "desc"
 from
 	public."content" c
 where

@@ -29,11 +29,11 @@ const (
 		"	'login' - to login\n" +
 		"	'register' - to register\n" +
 		"\n" +
-		"	's [type]' - save resource, where 'type' is: lp - LoginPassword, fl - File, bc - BankCard\n" +
+		"	's [type]' - save content, where 'type' is: lp - LoginPassword, fl - File, bc - BankCard\n" +
 		"\n" +
-		"	'u [id]' - update resource\n" +
-		"	'd [id]' - delete resource by id\n" +
-		"	'l [type]' - get resources by type, where 'type' is: lp - LoginPassword, fl - File, bc - BankCard\n	or get all if type is empty\n" +
+		"	'u [id]' - update content\n" +
+		"	'd [id]' - delete content by id\n" +
+		"	'l [type]' - get content by type, where 'type' is: lp - LoginPassword, fl - File, bc - BankCard\n	or get all if type is empty\n" +
 		"	'g [id]' - get loginPassword or BankCard by id\n" +
 		"	'gf [id]' - get file by id\n"
 )
@@ -207,7 +207,7 @@ func (c *cli) handleGet(ctx context.Context, args []string) (string, error) {
 func (c *cli) handleList(ctx context.Context, args []string) (string, error) {
 	cType := enum.Nan
 	if len(args) != 0 {
-		if aType, ok := contents.ArgToType[args[0]]; ok {
+		if aType, ok := enum.ArgToType[args[0]]; ok {
 			cType = aType
 		}
 	}
@@ -224,7 +224,7 @@ func (c *cli) handleList(ctx context.Context, args []string) (string, error) {
 		}
 	}
 	for _, c := range cs {
-		_, err := writer.WriteString(fmt.Sprintf("id: %d - type: '%s', descr: '%s'\n", c.ID, contents.TypeToArg[c.Type], c.Meta))
+		_, err := writer.WriteString(fmt.Sprintf("id: %d - type: '%s', descr: '%s'\n", c.ID, enum.TypeToArg[c.Type], c.Meta))
 		if err != nil {
 			return "", fmt.Errorf("cli.handleList: writer.WriteString(fmt.Sprintf) %w", err)
 		}
@@ -304,7 +304,7 @@ func (c *cli) handleUpdate(ctx context.Context, args []string) (res string, err 
 	case enum.File:
 		err = errs.ErrFileUpdate
 	default:
-		err = fmt.Errorf("resource type argument '%d' is not supported, type 'help' to display available types", cItem.Content.Type())
+		err = fmt.Errorf("content type argument '%d' is not supported, type 'help' to display available types", cItem.Content.Type())
 	}
 
 	if err != nil {

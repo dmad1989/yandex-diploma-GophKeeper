@@ -102,13 +102,13 @@ func (r repo) GetUser(ctx context.Context, login string) (*model.User, error) {
 }
 
 func (r repo) SaveContent(ctx context.Context, c model.Content) (int32, error) {
-
 	id, err := r.queries.SaveContent(ctx,
 		db.SaveContentParams{
 			UserID: c.UserID,
 			Type:   int32(c.Type),
 			Data:   c.Data,
 			Meta:   pgtype.Text{String: c.Meta, Valid: true},
+			Desc:   c.Desc,
 		})
 
 	if err != nil {
@@ -131,7 +131,9 @@ func (r repo) GetUserContentByID(ctx context.Context, id int32) (*model.Content,
 		UserID: dbc.UserID,
 		Type:   enum.ContentType(dbc.Type),
 		Data:   dbc.Data,
-		Meta:   dbc.Meta.String}, nil
+		Meta:   dbc.Meta.String,
+		Desc:   dbc.Desc,
+	}, nil
 }
 
 func (r repo) UpdateContent(ctx context.Context, c *model.Content) error {
@@ -169,6 +171,7 @@ func (r repo) GetUserContentByType(ctx context.Context, t int32) ([]*model.Conte
 			Type:   enum.ContentType(c.Type),
 			Data:   c.Data,
 			Meta:   c.Meta.String,
+			Desc:   c.Desc,
 		})
 	}
 	return res, nil
@@ -193,6 +196,7 @@ func (r repo) GetAllUserContent(ctx context.Context) ([]*model.Content, error) {
 			Type:   enum.ContentType(c.Type),
 			Data:   c.Data,
 			Meta:   c.Meta.String,
+			Desc:   c.Desc,
 		})
 	}
 	return res, nil

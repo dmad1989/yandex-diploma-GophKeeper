@@ -1,9 +1,13 @@
 package grpc
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io"
+	"os"
 
+	"github.com/dmad1989/gophKeeper/pkg/file"
 	"github.com/dmad1989/gophKeeper/pkg/model"
 	"github.com/dmad1989/gophKeeper/pkg/model/consts"
 	"github.com/dmad1989/gophKeeper/pkg/model/enum"
@@ -13,6 +17,11 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
+
+type FileWorker interface {
+	Save(path string, ch chan []byte) (chan error, error)
+	Read(path string, errCh chan error) (chan []byte, os.FileInfo, error)
+}
 
 type ContentApp interface {
 	Save(ctx context.Context, c *model.Content) (err error)
@@ -25,12 +34,14 @@ type ContentApp interface {
 type contentsServer struct {
 	log *zap.SugaredLogger
 	pb.UnimplementedContentsServer
-	app ContentApp
+	app  ContentApp
+	file FileWorker
 }
 
 func NewContentsServer(ctx context.Context, c ContentApp) pb.ContentsServer {
 	l := ctx.Value(consts.LoggerCtxKey).(*zap.SugaredLogger).Named("ContentsServer")
-	return &contentsServer{log: l, app: c}
+	f := file.New(ctx)
+	return &contentsServer{log: l, app: c, file: f}
 }
 
 func (c *contentsServer) Save(ctx context.Context, content *pb.Content) (*pb.ContentId, error) {
@@ -113,8 +124,90 @@ func (c *contentsServer) GetByType(q *pb.Query, s pb.Contents_GetByTypeServer) e
 	return nil
 }
 
-//todo	SaveFile(Contents_SaveFileServer) error
-//todo	GetFile(*ContentId, Contents_GetFileServer) error
+func (c *contentsServer) SaveFile(s pb.Contents_SaveFileServer) error {
+	ctx := s.Context()
+	userID, err := getUserIdFromContext(ctx)
+	if err != nil {
+		return fmt.Errorf("contentServ.SaveFile: getUserIdFromContext: %w", err)
+	}
+
+	chunk, err := s.Recv()
+	if err != nil {
+		if err == io.EOF {
+			c.log.Errorf("failed to save file content for '%d' user: empty stream", userID)
+			return status.Error(codes.InvalidArgument, "empty stream")
+		}
+		return status.Error(codes.Internal, err.Error())
+	}
+
+	mContent := &model.Content{
+		UserID: userID,
+		Type:   enum.File,
+		Meta:   chunk.Meta,
+		Desc:   chunk.Data,
+	}
+
+	fileData := bytes.Buffer{}
+
+	for {
+		c.log.Debug("contentServ.SaveFile: start waiting stream data")
+		chunk, err = s.Recv()
+		if err == io.EOF {
+			c.log.Debug("contentServ.SaveFile: end of stream data")
+			break
+		}
+		if err != nil {
+			return status.Error(codes.Internal, fmt.Errorf("contentServ.SaveFile: s.Recv(): %w", err).Error())
+		}
+
+		_, err = fileData.Write(chunk.Data)
+
+		if err != nil {
+			return status.Error(codes.Internal, fmt.Errorf("contentServ.SaveFile: fileData.Write(chunk.Data): %w", err).Error())
+		}
+	}
+	mContent.Data = fileData.Bytes()
+
+	if err := c.app.Save(ctx, mContent); err != nil {
+		return status.Errorf(codes.Internal, "contentServ.SaveFile: %s", err.Error())
+	}
+
+	return s.SendAndClose(&pb.ContentId{Id: mContent.ID})
+}
+
+func (c *contentsServer) GetFile(cID *pb.ContentId, s pb.Contents_GetFileServer) error {
+	ctx := s.Context()
+	content, err := c.app.Get(ctx, cID.Id)
+	if err != nil {
+		return status.Error(codes.Internal, fmt.Errorf("contentServ.GetFile:  %w", err).Error())
+	}
+
+	chunk := &pb.FileChunk{
+		Meta: content.Meta,
+		Data: content.Desc,
+	}
+
+	err = s.Send(chunk)
+	if err != nil {
+		return status.Error(codes.Internal, fmt.Errorf("contentServ.GetFile: s.Send: %w", err).Error())
+	}
+
+	buffer := make([]byte, 1024)
+	chunks := bytes.SplitAfter(content.Data, buffer)
+
+	for _, bChunk := range chunks {
+		chunk = &pb.FileChunk{
+			Meta: "",
+			Data: bChunk,
+		}
+		err := s.Send(chunk)
+		if err != nil {
+			return status.Error(codes.Internal, fmt.Errorf("contentServ.GetFile: s.Send: %w", err).Error())
+		}
+	}
+	return nil
+
+}
 
 func getUserIdFromContext(ctx context.Context) (int32, error) {
 	userIDCtx := ctx.Value(consts.UserCtxKey)

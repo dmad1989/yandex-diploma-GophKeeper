@@ -5,8 +5,8 @@ import "errors"
 var (
 	ErrUserAlreadyExist = errors.New("user already exist")
 	ErrUserNotFound     = errors.New("user not found")
-	ErrResNotFound      = errors.New("resource not found")
-	ErrResTooBig        = errors.New("resource is too big")
+	ErrResNotFound      = errors.New("content not found")
+	ErrResTooBig        = errors.New("content is too big")
 
 	ErrTokenNotFound = errors.New("unauthorized")
 	ErrTokenInvalid  = errors.New("token invalid")
@@ -30,5 +30,6 @@ var (
 	ErrEmptyArgID   = errors.New("arg '[id]' is empty, type 'help' to display available commands format")
 	ErrEmptyArgType = errors.New("arg '[type]' is empty, type 'help' to display available commands format")
 
-	ErrFileUpdate = errors.New("file update is not implemented, create a new")
+	ErrFileUpdate  = errors.New("file update is not implemented, create a new")
+	ErrFileMaxSize = errors.New("file size is too big")
 )

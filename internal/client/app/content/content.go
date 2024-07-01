@@ -2,9 +2,13 @@ package content
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
+	"os"
+	"path/filepath"
 
+	"github.com/dmad1989/gophKeeper/pkg/file"
 	"github.com/dmad1989/gophKeeper/pkg/model"
 	"github.com/dmad1989/gophKeeper/pkg/model/client/contents"
 	"github.com/dmad1989/gophKeeper/pkg/model/consts"
@@ -14,20 +18,27 @@ import (
 	"google.golang.org/grpc"
 )
 
-type Crypto interface {
+type CryptoWorker interface {
 	Decrypt(data []byte) ([]byte, error)
 	Encrypt(data []byte) ([]byte, error)
+}
+
+type FileWorker interface {
+	Save(path string, ch chan []byte) (chan error, error)
+	Read(path string, errCh chan error) (chan []byte, os.FileInfo, error)
 }
 
 type contentApp struct {
 	log    *zap.SugaredLogger
 	client pb.ContentsClient
-	crypto Crypto
+	crypto CryptoWorker
+	file   FileWorker
 }
 
-func New(ctx context.Context, conn *grpc.ClientConn, c Crypto) *contentApp {
+func New(ctx context.Context, conn *grpc.ClientConn, c CryptoWorker) *contentApp {
 	l := ctx.Value(consts.LoggerCtxKey).(*zap.SugaredLogger).Named("ContentApp")
-	return &contentApp{log: l, client: pb.NewContentsClient(conn), crypto: c}
+	f := file.New(ctx)
+	return &contentApp{log: l, client: pb.NewContentsClient(conn), crypto: c, file: f}
 }
 
 func (a contentApp) Save(ctx context.Context, conType enum.ContentType, data []byte, meta string) (int32, error) {
@@ -110,11 +121,111 @@ func (a contentApp) Get(ctx context.Context, id int32) (*contents.Item, error) {
 }
 
 func (a contentApp) SaveFile(ctx context.Context, path, meta string) (int32, error) {
-	//todo
-	return 0, nil
+	s, err := a.client.SaveFile(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("ContentApp.SaveFile: %w", err)
+	}
+	errCh := make(chan error)
+
+	chunks, stat, err := a.file.Read(path, errCh)
+
+	if err != nil {
+		return 0, fmt.Errorf("ContentApp.SaveFile: %w", err)
+	}
+
+	fileDesc := contents.File{
+		Name:      stat.Name(),
+		Extension: filepath.Ext(path),
+		Size:      stat.Size()}
+
+	fileDescJson, err := json.Marshal(fileDesc)
+
+	if err != nil {
+		return 0, fmt.Errorf("ContentApp.SaveFile: json.Marshal(file): %w", err)
+	}
+
+	err = s.Send(&pb.FileChunk{
+		Meta: meta,
+		Data: fileDescJson,
+	})
+	if err != nil {
+		return 0, fmt.Errorf("ContentApp.SaveFile: s.Send Desc: %w", err)
+	}
+
+	for {
+		chunk, ok := <-chunks
+		if !ok {
+			break
+		}
+
+		data, err := a.crypto.Encrypt(chunk)
+		if err != nil {
+			return 0, fmt.Errorf("ContentApp.SaveFile: %w", err)
+		}
+
+		err = s.Send(&pb.FileChunk{Data: data})
+		if err != nil {
+			errCh <- err
+			return 0, fmt.Errorf("ContentApp.SaveFile: s.Send Data: %w", err)
+		}
+	}
+
+	contId, err := s.CloseAndRecv()
+	if err != nil {
+		return 0, fmt.Errorf("ContentApp.SaveFile: s.CloseAndRecv(): %w", err)
+	}
+
+	return contId.Id, nil
 }
 
 func (a contentApp) GetFile(ctx context.Context, id int32) (string, error) {
-	// todo
-	return "", nil
+	s, err := a.client.GetFile(ctx, &pb.ContentId{Id: id})
+	if err != nil {
+		return "", fmt.Errorf("ContentApp.GetFile: %w", err)
+	}
+
+	chunk, err := s.Recv()
+	if err != nil {
+		return "", fmt.Errorf("ContentApp.GetFile: s.Recv(): %w", err)
+	}
+
+	var fileDesc contents.File
+	err = json.Unmarshal(chunk.Data, &fileDesc)
+	if err != nil {
+		return "", fmt.Errorf("ContentApp.GetFile: json.Unmarshal: %w", err)
+	}
+
+	path := fmt.Sprintf("./%s", fileDesc.Name)
+	chunks := make(chan []byte)
+	errCh, err := a.file.Save(path, chunks)
+	if err != nil {
+		return "", fmt.Errorf("ContentApp.GetFile: %w", err)
+	}
+
+Loop:
+	for {
+		chunk, err := s.Recv()
+		if err == io.EOF {
+			close(chunks)
+			break Loop
+		}
+		if err != nil {
+			close(chunks)
+			return "", fmt.Errorf("ContentApp.SaveFile: s.Recv(): %w", err)
+		}
+
+		data, err := a.crypto.Decrypt(chunk.Data)
+		if err != nil {
+			return "", fmt.Errorf("ContentApp.SaveFile: %w", err)
+		}
+
+		select {
+		case chunks <- data:
+		case <-errCh:
+			close(chunks)
+			break Loop
+		}
+	}
+
+	return path, nil
 }

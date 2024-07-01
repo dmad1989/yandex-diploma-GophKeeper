@@ -13,6 +13,7 @@ type Content struct {
 	UserID int32
 	Type   int32
 	Data   []byte
+	Desc   []byte
 	Meta   pgtype.Text
 }
 

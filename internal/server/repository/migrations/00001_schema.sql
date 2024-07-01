@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS public.content
     user_id integer NOT NULL,
     type integer NOT NULL,
     data bytea,
+    "desc" bytea,
     meta text COLLATE pg_catalog."default",
     CONSTRAINT content_pkey PRIMARY KEY (id),
     CONSTRAINT fk_users FOREIGN KEY (user_id)

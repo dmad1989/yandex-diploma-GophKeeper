@@ -7,5 +7,6 @@ type Content struct {
 	UserID int32
 	Type   enum.ContentType
 	Data   []byte
+	Desc   []byte
 	Meta   string
 }
