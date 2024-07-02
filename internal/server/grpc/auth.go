@@ -16,6 +16,8 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
+//go:generate mockgen -source=auth.go -destination=./mocks/mock_auth.go -package=mocks
+
 var (
 	ErrUsernameEmpty = errors.New("username is empty")
 	ErrPasswordEmpty = errors.New("password is empty")

@@ -14,6 +14,8 @@ import (
 	"google.golang.org/grpc/credentials"
 )
 
+//go:generate mockgen -source=grpc.go -destination=./mocks/mock_grpc.go -package=mocks
+
 const (
 	registerMethod = "/gophkeeper.Auth/Register"
 	loginMethod    = "/gophkeeper.Auth/Login"

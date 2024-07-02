@@ -17,6 +17,8 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+//go:generate mockgen -source=contents.go -destination=./mocks/mock_contents.go -package=mocks
+
 type ContentApp interface {
 	Save(ctx context.Context, c *model.Content) (err error)
 	Update(ctx context.Context, c *model.Content) (err error)
