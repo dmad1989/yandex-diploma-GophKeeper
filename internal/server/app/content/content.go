@@ -11,6 +11,17 @@ import (
 	"go.uber.org/zap"
 )
 
+//go:generate mockgen -source=content.go -destination=./mock_content.go -package=content
+
+var (
+	ErrEmptyID     = errors.New("content.ID is iempty")
+	ErrEmptyData   = errors.New("content.Data is iempty")
+	ErrEmptyMeta   = errors.New("content.Meta is iempty")
+	ErrEmptyType   = errors.New("content.Type is iempty")
+	ErrEmptyUserID = errors.New("content.UserID is iempty")
+	ErrTypeToDesc  = errors.New("content.Type is not associated with Desc")
+)
+
 type Repository interface {
 	SaveContent(ctx context.Context, c model.Content) (int32, error)
 	GetUserContentByID(ctx context.Context, id int32) (*model.Content, error)
@@ -37,10 +48,12 @@ func (a *ContentApp) Save(ctx context.Context, c *model.Content) (err error) {
 		return fmt.Errorf("ContentApp.Save: validateContent %w", err)
 	}
 
-	desc := enum.TypeToDesc[c.Type]
-	if desc != "" {
-		c.Desc = []byte(desc)
+	desc, ok := enum.TypeToDesc[c.Type]
+	if !ok {
+		return ErrTypeToDesc
 	}
+
+	c.Desc = []byte(desc)
 
 	c.ID, err = a.repo.SaveContent(ctx, *c)
 	if err != nil {
@@ -56,6 +69,12 @@ func (a *ContentApp) Update(ctx context.Context, c *model.Content) (err error) {
 		return fmt.Errorf("ContentApp.Update: validateContent: %w", err)
 	}
 
+	if c.ID == 0 {
+		a.log.Errorw("ContentApp.Update: input object not valid",
+			zap.Error(ErrEmptyID))
+		return fmt.Errorf("ContentApp.Update: %w", ErrEmptyID)
+	}
+
 	if err = a.repo.UpdateContent(ctx, c); err != nil {
 		return fmt.Errorf("ContentApp.Update: %w", err)
 	}
@@ -64,7 +83,7 @@ func (a *ContentApp) Update(ctx context.Context, c *model.Content) (err error) {
 
 func (a *ContentApp) Delete(ctx context.Context, id int32) error {
 	if id == 0 {
-		return errors.New("ContentApp.Delete: id is empty")
+		return fmt.Errorf("ContentApp.Delete: %w", ErrEmptyID)
 	}
 
 	if err := a.repo.DeleteContent(ctx, id); err != nil {
@@ -91,7 +110,7 @@ func (a *ContentApp) GetUserContent(ctx context.Context, typeID enum.ContentType
 
 func (a ContentApp) Get(ctx context.Context, id int32) (*model.Content, error) {
 	if id == 0 {
-		return nil, errors.New("ContentApp.Get: id  is iempty")
+		return nil, fmt.Errorf("ContentApp.Get: %w", ErrEmptyID)
 	}
 	res, err := a.repo.GetUserContentByID(ctx, id)
 	if err != nil {
@@ -102,16 +121,16 @@ func (a ContentApp) Get(ctx context.Context, id int32) (*model.Content, error) {
 
 func (a ContentApp) validateContent(c *model.Content) error {
 	if len(c.Data) == 0 {
-		return errors.New("content.Data is iempty")
+		return ErrEmptyData
 	}
 	if c.Meta == "" {
-		return errors.New("content.Meta is iempty")
+		return ErrEmptyMeta
 	}
 	if c.Type == 0 {
-		return errors.New("content.Type is iempty")
+		return ErrEmptyType
 	}
 	if c.UserID == 0 {
-		return errors.New("content.UserID is iempty")
+		return ErrEmptyUserID
 	}
 	return nil
 }
