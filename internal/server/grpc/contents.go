@@ -183,10 +183,15 @@ func (c *contentsServer) GetFile(cID *pb.ContentId, s pb.Contents_GetFileServer)
 	ctx := s.Context()
 	content, err := c.app.Get(ctx, cID.Id)
 	if err != nil {
+		c.log.Errorw("get", zap.Error(err))
 		if errors.Is(err, errs.ErrContNotFound) {
 			return status.Error(codes.NotFound, err.Error())
 		}
 		return status.Error(codes.Internal, fmt.Errorf("contentServ.GetFile:  %w", err).Error())
+	}
+
+	if content.Type != enum.File {
+		return status.Error(codes.InvalidArgument, errs.ErrWrongFileType.Error())
 	}
 
 	chunk := &pb.FileChunk{

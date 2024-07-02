@@ -19,7 +19,7 @@ import (
 )
 
 func main() {
-	zlog, err := logging.NewLogger()
+	zlog, err := logging.NewLogger("./client.log")
 	if err != nil {
 		log.Fatal(err)
 	}

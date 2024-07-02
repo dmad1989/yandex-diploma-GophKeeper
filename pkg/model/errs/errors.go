@@ -32,4 +32,6 @@ var (
 
 	ErrFileUpdate  = errors.New("file update is not implemented, create a new")
 	ErrFileMaxSize = errors.New("file size is too big")
+
+	ErrWrongFileType = errors.New("type of content is not file")
 )

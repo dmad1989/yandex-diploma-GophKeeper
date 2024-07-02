@@ -3,6 +3,7 @@ package content
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -199,16 +200,19 @@ func (a contentApp) SaveFile(ctx context.Context, path, meta string) (int32, err
 func (a contentApp) GetFile(ctx context.Context, id int32) (string, error) {
 	s, err := a.client.GetFile(ctx, &pb.ContentId{Id: id})
 	if err != nil {
-		if e, ok := status.FromError(err); ok {
-			if e.Code() == codes.NotFound {
-				return "", errs.ErrContNotFound
-			}
+		a.log.Infow("GetFile - 1", zap.Error(err))
+		if ok, e := a.fromStatusError(err); ok {
+			return "", e
 		}
 		return "", fmt.Errorf("ContentApp.GetFile: %w", err)
 	}
 
 	chunk, err := s.Recv()
 	if err != nil {
+		a.log.Infow("GetFile - 1", zap.Error(err))
+		if ok, e := a.fromStatusError(err); ok {
+			return "", e
+		}
 		return "", fmt.Errorf("ContentApp.GetFile: s.Recv(): %w", err)
 	}
 
@@ -228,17 +232,16 @@ func (a contentApp) GetFile(ctx context.Context, id int32) (string, error) {
 Loop:
 	for {
 		chunk, err := s.Recv()
-		if err == io.EOF {
-			close(chunks)
-			break Loop
-		}
-		if e, ok := status.FromError(err); ok {
-			if e.Code() == codes.NotFound {
-				return "", errs.ErrContNotFound
-			}
-		}
 		if err != nil {
+			a.log.Infow("GetFile - loop", zap.Error(err))
+			if errors.Is(err, io.EOF) {
+				close(chunks)
+				break Loop
+			}
 			close(chunks)
+			if ok, e := a.fromStatusError(err); ok {
+				return "", e
+			}
 			return "", fmt.Errorf("ContentApp.SaveFile: s.Recv(): %w", err)
 		}
 
@@ -256,4 +259,24 @@ Loop:
 	}
 
 	return path, nil
+}
+
+func (a contentApp) fromStatusError(e error) (ok bool, err error) {
+	a.log.Errorw("fromStatusError", zap.Error(e))
+	if e, ok := status.FromError(e); ok {
+		a.log.Errorw("fromStatusError", zap.Bool("ok", ok), zap.Any("code", e.Code()))
+		switch e.Code() {
+		case codes.NotFound:
+			{
+				err = errs.ErrContNotFound
+			}
+		case codes.InvalidArgument:
+			{
+				err = errs.ErrWrongFileType
+			}
+		}
+		return ok, err
+	}
+	a.log.Errorw("fromStatusError - exit", zap.Error(err), zap.Bool("ok", ok))
+	return
 }

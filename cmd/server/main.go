@@ -17,7 +17,7 @@ import (
 )
 
 func main() {
-	zlog, err := logging.NewLogger()
+	zlog, err := logging.NewLogger("")
 	if err != nil {
 		log.Fatal(err)
 	}
