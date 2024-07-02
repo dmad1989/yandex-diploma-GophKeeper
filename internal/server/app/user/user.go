@@ -14,8 +14,16 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+//go:generate mockgen -source=user.go -destination=./mock_user.go -package=user
+
 const (
 	secretKey = "wbhhFFd72C4gsecretkey"
+)
+
+var (
+	ErrValidateUser        = errors.New("user struct is empty")
+	ErrValidatePasword     = errors.New("password  is empty")
+	ErrValidateHashPasword = errors.New("hash password  is empty")
 )
 
 type Repository interface {
@@ -61,6 +69,15 @@ func (a *UserApp) GetByLogin(ctx context.Context, login string) (user *model.Use
 }
 
 func (a *UserApp) ValidatePassword(user *model.User, password string) (bool, error) {
+	if user == nil {
+		return false, ErrValidateUser
+	}
+	if len(user.HashPassword) == 0 {
+		return false, ErrValidateHashPasword
+	}
+	if password == "" {
+		return false, ErrValidatePasword
+	}
 	if err := bcrypt.CompareHashAndPassword(user.HashPassword, []byte(password)); err != nil {
 		if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
 			return false, nil
