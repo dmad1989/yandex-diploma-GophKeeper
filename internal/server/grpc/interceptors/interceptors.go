@@ -2,6 +2,7 @@ package interceptors
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/dmad1989/gophKeeper/pkg/model"
@@ -9,7 +10,9 @@ import (
 	"github.com/dmad1989/gophKeeper/pkg/model/errs"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 )
 
 type UserApp interface {
@@ -50,8 +53,12 @@ func (tp *TokenProvider) TokenInterceptor() grpc.UnaryServerInterceptor {
 		if !tp.isSecureMethod(info.FullMethod) {
 			userId, err := tp.extractID(ctx)
 			if err != nil {
-				return nil, errs.TokenError{Err: err}
+				if errors.Is(err, errs.ErrTokenNotFound) {
+					return nil, status.Error(codes.Unauthenticated, errs.ErrTokenNotFound.Error())
+				}
+				return nil, status.Error(codes.Internal, err.Error())
 			}
+
 			ctxWithUserId := context.WithValue(ctx, consts.UserCtxKey, userId)
 			return handler(ctxWithUserId, req)
 		}
@@ -69,12 +76,14 @@ func (tp *TokenProvider) TokenStreamInterceptor() grpc.StreamServerInterceptor {
 		if !tp.isSecureMethod(info.FullMethod) {
 			userId, err := tp.extractID(ss.Context())
 			if err != nil {
-				tp.log.Errorf("failed to extract userId from request token: %tp", err)
-				return errs.TokenError{Err: err}
+				tp.log.Errorw("extract userId from request token", zap.Error(err))
+				if errors.Is(err, errs.ErrTokenNotFound) {
+					return status.Error(codes.Unauthenticated, errs.ErrTokenNotFound.Error())
+				}
+				return status.Error(codes.Internal, err.Error())
 			}
 			ctxWithUserId := context.WithValue(ss.Context(), consts.UserCtxKey, userId)
 			tp.log.Infof("Retrieved from token userId: %d", userId)
-			ss.Context()
 			return handler(srv, &model.ServerStreamWithCtx{
 				ServerStream: ss,
 				Ctx:          ctxWithUserId,

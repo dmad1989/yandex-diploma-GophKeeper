@@ -17,10 +17,11 @@ var (
 	ErrNotIntCtxUser = errors.New("wrong type of userID in context")
 
 	//Cli errors
-	ErrInputLogin    = errors.New("empty username not supported")
-	ErrInputPassword = errors.New("empty password not supported")
-	ErrInputFilePath = errors.New("empty path not supported")
-	ErrInputDesc     = errors.New("empty description not supported")
+	ErrInputLogin      = errors.New("empty username not supported")
+	ErrInputPassword   = errors.New("empty password not supported")
+	ErrInputFilePath   = errors.New("empty path not supported")
+	ErrInputDesc       = errors.New("empty description not supported")
+	ErrUnauthenticated = errors.New("login required")
 
 	ErrInputBCNumber     = errors.New("empty numbeer not supported")
 	ErrInputBCExpireDate = errors.New("empty data not supported")

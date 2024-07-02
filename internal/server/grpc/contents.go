@@ -137,7 +137,7 @@ func (c *contentsServer) SaveFile(s pb.Contents_SaveFileServer) error {
 
 	chunk, err := s.Recv()
 	if err != nil {
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			c.log.Errorf("failed to save file content for '%d' user: empty stream", userID)
 			return status.Error(codes.InvalidArgument, "empty stream")
 		}
@@ -156,11 +156,11 @@ func (c *contentsServer) SaveFile(s pb.Contents_SaveFileServer) error {
 	for {
 		c.log.Debug("contentServ.SaveFile: start waiting stream data")
 		chunk, err = s.Recv()
-		if err == io.EOF {
-			c.log.Debug("contentServ.SaveFile: end of stream data")
-			break
-		}
 		if err != nil {
+			if errors.Is(err, io.EOF) {
+				c.log.Debug("contentServ.SaveFile: end of stream data")
+				break
+			}
 			return status.Error(codes.Internal, fmt.Errorf("contentServ.SaveFile: s.Recv(): %w", err).Error())
 		}
 

@@ -48,6 +48,9 @@ func New(ctx context.Context, conn *grpc.ClientConn, c CryptoWorker) *contentApp
 func (a contentApp) Save(ctx context.Context, conType enum.ContentType, data []byte, meta string) (int32, error) {
 	eData, err := a.crypto.Encrypt(data)
 	if err != nil {
+		if ok, e := a.fromStatusError(err); ok {
+			return 0, e
+		}
 		return 0, fmt.Errorf("ContentApp.Save: %w", err)
 	}
 
@@ -64,10 +67,8 @@ func (a contentApp) Save(ctx context.Context, conType enum.ContentType, data []b
 func (a contentApp) Delete(ctx context.Context, id int32) error {
 	_, err := a.client.Delete(ctx, &pb.ContentId{Id: id})
 	if err != nil {
-		if e, ok := status.FromError(err); ok {
-			if e.Code() == codes.NotFound {
-				return errs.ErrContNotFound
-			}
+		if ok, e := a.fromStatusError(err); ok {
+			return e
 		}
 		return fmt.Errorf("ContentApp.Delete: %w", err)
 	}
@@ -76,6 +77,9 @@ func (a contentApp) Delete(ctx context.Context, id int32) error {
 func (a contentApp) Update(ctx context.Context, id int32, contype enum.ContentType, data []byte, meta string) error {
 	eData, err := a.crypto.Encrypt(data)
 	if err != nil {
+		if ok, e := a.fromStatusError(err); ok {
+			return e
+		}
 		return fmt.Errorf("ContentApp.Update: %w", err)
 	}
 
@@ -93,22 +97,22 @@ func (a contentApp) Update(ctx context.Context, id int32, contype enum.ContentTy
 func (a contentApp) GetByType(ctx context.Context, contype enum.ContentType) ([]*model.Content, error) {
 	s, err := a.client.GetByType(ctx, &pb.Query{ContentType: pb.TYPE(contype)})
 	if err != nil {
-		if e, ok := status.FromError(err); ok {
-			if e.Code() == codes.NotFound {
-				return nil, errs.ErrContNotFound
-			}
+		if ok, e := a.fromStatusError(err); ok {
+			return nil, e
 		}
 		return nil, fmt.Errorf("ContentApp.GetByType: client.GetByType: %w", err)
 	}
 	results := make([]*model.Content, 0)
 	for {
 		c, err := s.Recv()
-		if err == io.EOF {
-			break
-		}
 		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+			a.log.Errorw("ContentApp.GetByType: loop s.Recv()", zap.Error(err))
 			return nil, fmt.Errorf("ContentApp.GetByType: loop s.Recv(): %w", err)
 		}
+
 		results = append(results, &model.Content{
 			ID:   c.Id,
 			Meta: c.Meta,
@@ -120,10 +124,8 @@ func (a contentApp) GetByType(ctx context.Context, contype enum.ContentType) ([]
 func (a contentApp) Get(ctx context.Context, id int32) (*contents.Item, error) {
 	content, err := a.client.Get(ctx, &pb.ContentId{Id: id})
 	if err != nil {
-		if e, ok := status.FromError(err); ok {
-			if e.Code() == codes.NotFound {
-				return nil, errs.ErrContNotFound
-			}
+		if ok, e := a.fromStatusError(err); ok {
+			return nil, e
 		}
 		return nil, fmt.Errorf("ContentApp.Get: client.Get: %w", err)
 	}
@@ -142,6 +144,9 @@ func (a contentApp) Get(ctx context.Context, id int32) (*contents.Item, error) {
 func (a contentApp) SaveFile(ctx context.Context, path, meta string) (int32, error) {
 	s, err := a.client.SaveFile(ctx)
 	if err != nil {
+		if ok, e := a.fromStatusError(err); ok {
+			return 0, e
+		}
 		return 0, fmt.Errorf("ContentApp.SaveFile: %w", err)
 	}
 	errCh := make(chan error)
@@ -200,7 +205,7 @@ func (a contentApp) SaveFile(ctx context.Context, path, meta string) (int32, err
 func (a contentApp) GetFile(ctx context.Context, id int32) (string, error) {
 	s, err := a.client.GetFile(ctx, &pb.ContentId{Id: id})
 	if err != nil {
-		a.log.Infow("GetFile - 1", zap.Error(err))
+		a.log.Errorw("GetFile", zap.Error(err))
 		if ok, e := a.fromStatusError(err); ok {
 			return "", e
 		}
@@ -209,7 +214,7 @@ func (a contentApp) GetFile(ctx context.Context, id int32) (string, error) {
 
 	chunk, err := s.Recv()
 	if err != nil {
-		a.log.Infow("GetFile - 1", zap.Error(err))
+		a.log.Errorw("GetFile ", zap.Error(err))
 		if ok, e := a.fromStatusError(err); ok {
 			return "", e
 		}
@@ -233,7 +238,7 @@ Loop:
 	for {
 		chunk, err := s.Recv()
 		if err != nil {
-			a.log.Infow("GetFile - loop", zap.Error(err))
+			a.log.Errorw("GetFile - loop", zap.Error(err))
 			if errors.Is(err, io.EOF) {
 				close(chunks)
 				break Loop
@@ -273,6 +278,10 @@ func (a contentApp) fromStatusError(e error) (ok bool, err error) {
 		case codes.InvalidArgument:
 			{
 				err = errs.ErrWrongFileType
+			}
+		case codes.Unauthenticated:
+			{
+				err = errs.ErrUnauthenticated
 			}
 		}
 		return ok, err

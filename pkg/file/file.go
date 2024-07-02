@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	"io"
 	"os"
 	"time"
 
@@ -48,11 +47,8 @@ func (f *File) Read(path string, errCh chan error) (chan []byte, os.FileInfo, er
 		n := 0
 		for {
 			n, err = reader.Read(buffer)
-			if err == io.EOF || n == 0 {
-				close(buf)
-				return
-			}
-			if err != nil {
+
+			if err != nil || n == 0 {
 				close(buf)
 				return
 			}
