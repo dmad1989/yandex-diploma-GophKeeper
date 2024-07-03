@@ -14,7 +14,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func Test_NewAuthServer(t *testing.T) {
+func Test_NewApp(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	m := NewMockRepository(ctrl)

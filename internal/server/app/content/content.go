@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/dmad1989/gophKeeper/pkg/logging"
 	"github.com/dmad1989/gophKeeper/pkg/model"
-	"github.com/dmad1989/gophKeeper/pkg/model/consts"
 	"github.com/dmad1989/gophKeeper/pkg/model/enum"
 	"go.uber.org/zap"
 )
@@ -36,9 +36,13 @@ type ContentApp struct {
 	repo Repository
 }
 
-func NewApp(ctx context.Context, r Repository) *ContentApp {
-	l := ctx.Value(consts.LoggerCtxKey).(*zap.SugaredLogger).Named("ContentApp")
-	return &ContentApp{log: l, repo: r}
+func NewApp(ctx context.Context, r Repository) (*ContentApp, error) {
+	l, err := logging.LoggerFromContext(ctx, "ContentApp")
+	if err != nil {
+		return nil, fmt.Errorf("auth.NewAuthServer: LoggerFromContext: %w", err)
+	}
+
+	return &ContentApp{log: l, repo: r}, nil
 }
 
 func (a *ContentApp) Save(ctx context.Context, c *model.Content) (err error) {
