@@ -38,7 +38,10 @@ func main() {
 	userApp := user.NewApp(ctx, repo)
 	contentApp := content.NewApp(ctx, repo)
 
-	authSrv := grpc.NewAuthServer(ctx, userApp)
+	authSrv, err := grpc.NewAuthServer(ctx, userApp)
+	if err != nil {
+		log.Fatal(err)
+	}
 	contentsSrv := grpc.NewContentsServer(ctx, contentApp)
 
 	s, err := grpc.NewServerBuilder().

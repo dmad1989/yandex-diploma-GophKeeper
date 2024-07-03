@@ -13,6 +13,8 @@ var (
 	ErrTokenNoUser   = errors.New("token without userID")
 	ErrReadMD        = errors.New("read request metadata")
 
+	ErrNoCtx         = errors.New("no context")
+	ErrNoCtxLogger   = errors.New("no logger in context")
 	ErrNoCtxUser     = errors.New("no userID in context")
 	ErrNotIntCtxUser = errors.New("wrong type of userID in context")
 

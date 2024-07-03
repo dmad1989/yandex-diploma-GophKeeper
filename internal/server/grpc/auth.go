@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/dmad1989/gophKeeper/pkg/logging"
 	"github.com/dmad1989/gophKeeper/pkg/model"
-	"github.com/dmad1989/gophKeeper/pkg/model/consts"
 	"github.com/dmad1989/gophKeeper/pkg/model/errs"
 	pb "github.com/dmad1989/gophKeeper/pkg/proto/gen"
 	"go.uber.org/zap"
@@ -37,9 +37,12 @@ type authServ struct {
 	pb.UnimplementedAuthServer
 }
 
-func NewAuthServer(ctx context.Context, u UserApp) pb.AuthServer {
-	l := ctx.Value(consts.LoggerCtxKey).(*zap.SugaredLogger).Named("AuthServer")
-	return &authServ{log: l, userApp: u}
+func NewAuthServer(ctx context.Context, u UserApp) (pb.AuthServer, error) {
+	l, err := logging.LoggerFromContext(ctx, "AuthServer")
+	if err != nil {
+		return nil, fmt.Errorf("auth.NewAuthServer: LoggerFromContext: %w", err)
+	}
+	return &authServ{log: l, userApp: u}, nil
 }
 
 func (a *authServ) Register(ctx context.Context, ad *pb.AuthData) (*pb.TokenData, error) {
