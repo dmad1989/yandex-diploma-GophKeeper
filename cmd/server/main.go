@@ -35,7 +35,10 @@ func main() {
 		log.Fatal(err)
 	}
 
-	userApp := user.NewApp(ctx, repo)
+	userApp, err := user.NewApp(ctx, repo)
+	if err != nil {
+		log.Fatal(err)
+	}
 	contentApp := content.NewApp(ctx, repo)
 
 	authSrv, err := grpc.NewAuthServer(ctx, userApp)

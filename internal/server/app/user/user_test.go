@@ -8,10 +8,62 @@ import (
 
 	"github.com/dmad1989/gophKeeper/pkg/model"
 	"github.com/dmad1989/gophKeeper/pkg/model/consts"
+	"github.com/dmad1989/gophKeeper/pkg/model/errs"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 )
+
+func Test_NewAuthServer(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	m := NewMockRepository(ctrl)
+	type expected struct {
+		err error
+	}
+
+	tests := []struct {
+		name  string
+		input context.Context
+		exp   expected
+	}{
+		{
+			name:  "negative - no context",
+			input: nil,
+			exp: expected{
+				err: errs.ErrNoCtx,
+			},
+		},
+		{
+			name:  "negative - empty context",
+			input: context.TODO(),
+			exp: expected{
+				err: errs.ErrNoCtxLogger,
+			},
+		},
+
+		{
+			name:  "positive",
+			input: initContext(),
+			exp: expected{
+				err: nil,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			res, err := NewApp(tt.input, m)
+			if tt.exp.err != nil {
+				assert.Error(t, err)
+				assert.ErrorIs(t, err, tt.exp.err)
+				assert.Empty(t, res)
+				return
+			}
+			assert.NoError(t, err)
+			assert.NotEmpty(t, res)
+		})
+	}
+}
 
 func Test_Register(t *testing.T) {
 	ctx := initContext()
@@ -81,8 +133,9 @@ func Test_Register(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			m := NewMockRepository(ctrl)
 			m.EXPECT().CreateUser(gomock.Any(), gomock.Any()).Return(tt.mock.id, tt.mock.err).AnyTimes()
-			a := NewApp(ctx, m)
-			err := a.Register(ctx, tt.user)
+			a, err := NewApp(ctx, m)
+			assert.NoError(t, err, "wrong context for test! Check your realization!")
+			err = a.Register(ctx, tt.user)
 			if tt.exp.isError {
 				assert.ErrorContains(t, err, tt.exp.errMessage)
 				assert.Empty(t, tt.user.ID)
@@ -139,7 +192,8 @@ func Test_GetByLogin(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			m := NewMockRepository(ctrl)
 			m.EXPECT().GetUser(gomock.Any(), gomock.Any()).Return(tt.mock.user, tt.mock.err).AnyTimes()
-			a := NewApp(ctx, m)
+			a, err := NewApp(ctx, m)
+			assert.NoError(t, err, "wrong context for test! Check your realization!")
 			actUser, actErr := a.GetByLogin(ctx, tt.login)
 			if tt.exp.isError {
 				assert.ErrorContains(t, actErr, tt.exp.errMessage)
@@ -207,7 +261,8 @@ func Test_ValidatePassword(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			a := NewApp(ctx, m)
+			a, err := NewApp(ctx, m)
+			assert.NoError(t, err, "wrong context for test! Check your realization!")
 			ok, err := a.ValidatePassword(tt.in.user, tt.in.password)
 
 			if tt.exp.isError {

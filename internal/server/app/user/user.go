@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/dmad1989/gophKeeper/pkg/logging"
 	"github.com/dmad1989/gophKeeper/pkg/model"
-	"github.com/dmad1989/gophKeeper/pkg/model/consts"
 	"github.com/dmad1989/gophKeeper/pkg/model/errs"
 	"github.com/golang-jwt/jwt/v4"
 	"go.uber.org/zap"
@@ -41,9 +41,12 @@ type Claims struct {
 	ID int32
 }
 
-func NewApp(ctx context.Context, r Repository) *UserApp {
-	l := ctx.Value(consts.LoggerCtxKey).(*zap.SugaredLogger).Named("UserApp")
-	return &UserApp{log: l, repo: r}
+func NewApp(ctx context.Context, r Repository) (*UserApp, error) {
+	l, err := logging.LoggerFromContext(ctx, "UserApp")
+	if err != nil {
+		return nil, fmt.Errorf("auth.NewAuthServer: LoggerFromContext: %w", err)
+	}
+	return &UserApp{log: l, repo: r}, nil
 }
 
 func (a *UserApp) Register(ctx context.Context, user *model.User) error {
