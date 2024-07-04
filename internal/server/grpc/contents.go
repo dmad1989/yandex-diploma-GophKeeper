@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/dmad1989/gophKeeper/pkg/logging"
 	"github.com/dmad1989/gophKeeper/pkg/model"
 	"github.com/dmad1989/gophKeeper/pkg/model/consts"
 	"github.com/dmad1989/gophKeeper/pkg/model/enum"
@@ -33,9 +34,13 @@ type contentsServer struct {
 	app ContentApp
 }
 
-func NewContentsServer(ctx context.Context, c ContentApp) pb.ContentsServer {
-	l := ctx.Value(consts.LoggerCtxKey).(*zap.SugaredLogger).Named("ContentsServer")
-	return &contentsServer{log: l, app: c}
+func NewContentsServer(ctx context.Context, c ContentApp) (pb.ContentsServer, error) {
+	l, err := logging.LoggerFromContext(ctx, "ContentsServer")
+	if err != nil {
+		return nil, fmt.Errorf("contents.NewAuthServer: LoggerFromContext: %w", err)
+	}
+
+	return &contentsServer{log: l, app: c}, nil
 }
 
 func (c *contentsServer) Save(ctx context.Context, content *pb.Content) (*pb.ContentId, error) {

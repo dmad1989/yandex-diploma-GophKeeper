@@ -1,20 +1,17 @@
 package grpc
 
 import (
-	"context"
 	"errors"
-	"fmt"
 	"testing"
 
 	"github.com/dmad1989/gophKeeper/internal/server/grpc/mocks"
 	"github.com/dmad1989/gophKeeper/pkg/model"
-	"github.com/dmad1989/gophKeeper/pkg/model/consts"
 	"github.com/dmad1989/gophKeeper/pkg/model/errs"
 	"github.com/dmad1989/gophKeeper/pkg/proto/gen"
+	"github.com/dmad1989/gophKeeper/test"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -34,6 +31,9 @@ type mockGenTokenParams struct {
 }
 
 func TestNewAuthServer(t *testing.T) {
+	ectx := test.NewContextEmpty()
+	ctx, err := test.NewContextFull()
+	require.NoError(t, err, "TestNewAuthServer.NewContextFull")
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	m := mocks.NewMockUserApp(ctrl)
@@ -43,7 +43,7 @@ func TestNewAuthServer(t *testing.T) {
 
 	tests := []struct {
 		name  string
-		input context.Context
+		input test.Context
 		exp   expected
 	}{
 		{
@@ -55,7 +55,7 @@ func TestNewAuthServer(t *testing.T) {
 		},
 		{
 			name:  "negative - empty context",
-			input: context.TODO(),
+			input: ectx,
 			exp: expected{
 				err: errs.ErrNoCtxLogger,
 			},
@@ -63,7 +63,7 @@ func TestNewAuthServer(t *testing.T) {
 
 		{
 			name:  "positive",
-			input: initContext(),
+			input: ctx,
 			exp: expected{
 				err: nil,
 			},
@@ -85,7 +85,8 @@ func TestNewAuthServer(t *testing.T) {
 }
 
 func TestRegister(t *testing.T) {
-	ctx := initContext()
+	ctx, err := test.NewContextFull()
+	require.NoError(t, err, "TestRegister.NewContextFull")
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -203,7 +204,8 @@ func TestRegister(t *testing.T) {
 }
 
 func TestLogin(t *testing.T) {
-	ctx := initContext()
+	ctx, err := test.NewContextFull()
+	require.NoError(t, err, "TestLogin.NewContextFull")
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -455,20 +457,4 @@ func TestLogin(t *testing.T) {
 
 		})
 	}
-}
-
-func loggerInit() (*zap.SugaredLogger, error) {
-	zl, err := zap.NewProduction()
-	if err != nil {
-		return nil, fmt.Errorf("loggerInit: %w", err)
-	}
-	return zl.Sugar(), nil
-}
-
-func initContext() context.Context {
-	log, err := loggerInit()
-	if err != nil {
-		log.Fatal(err)
-	}
-	return context.WithValue(context.Background(), consts.LoggerCtxKey, log)
 }

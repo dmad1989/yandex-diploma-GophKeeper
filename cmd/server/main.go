@@ -48,7 +48,10 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	contentsSrv := grpc.NewContentsServer(ctx, contentApp)
+	contentsSrv, err := grpc.NewContentsServer(ctx, contentApp)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	s, err := grpc.NewServerBuilder().
 		Context(ctx).
@@ -56,6 +59,7 @@ func main() {
 		ContentsServer(contentsSrv).
 		Config(cfg).
 		UserApp(userApp).Build()
+
 	if err != nil {
 		log.Fatal(err)
 	}

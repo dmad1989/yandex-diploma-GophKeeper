@@ -1,20 +1,21 @@
 package user
 
 import (
-	"context"
 	"errors"
-	"fmt"
 	"testing"
 
 	"github.com/dmad1989/gophKeeper/pkg/model"
-	"github.com/dmad1989/gophKeeper/pkg/model/consts"
 	"github.com/dmad1989/gophKeeper/pkg/model/errs"
+	"github.com/dmad1989/gophKeeper/test"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
-	"go.uber.org/zap"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewApp(t *testing.T) {
+	ectx := test.NewContextEmpty()
+	ctx, err := test.NewContextFull()
+	require.NoError(t, err, "TestNewApp.NewContextFull")
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	m := NewMockRepository(ctrl)
@@ -24,7 +25,7 @@ func TestNewApp(t *testing.T) {
 
 	tests := []struct {
 		name  string
-		input context.Context
+		input test.Context
 		exp   expected
 	}{
 		{
@@ -36,7 +37,7 @@ func TestNewApp(t *testing.T) {
 		},
 		{
 			name:  "negative - empty context",
-			input: context.TODO(),
+			input: ectx,
 			exp: expected{
 				err: errs.ErrNoCtxLogger,
 			},
@@ -44,7 +45,7 @@ func TestNewApp(t *testing.T) {
 
 		{
 			name:  "positive",
-			input: initContext(),
+			input: ctx,
 			exp: expected{
 				err: nil,
 			},
@@ -66,7 +67,8 @@ func TestNewApp(t *testing.T) {
 }
 
 func TestRegister(t *testing.T) {
-	ctx := initContext()
+	ctx, err := test.NewContextFull()
+	require.NoError(t, err, "TestRegister.NewContextFull")
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	type expected struct {
@@ -149,7 +151,8 @@ func TestRegister(t *testing.T) {
 }
 
 func TestGetByLogin(t *testing.T) {
-	ctx := initContext()
+	ctx, err := test.NewContextFull()
+	require.NoError(t, err, "TestGetByLogin.NewContextFull")
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -205,7 +208,8 @@ func TestGetByLogin(t *testing.T) {
 }
 
 func TestValidatePassword(t *testing.T) {
-	ctx := initContext()
+	ctx, err := test.NewContextFull()
+	require.NoError(t, err, "TestValidatePassword.NewContextFull")
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	m := NewMockRepository(ctrl)
@@ -274,20 +278,4 @@ func TestValidatePassword(t *testing.T) {
 
 		})
 	}
-}
-
-func loggerInit() (*zap.SugaredLogger, error) {
-	zl, err := zap.NewProduction()
-	if err != nil {
-		return nil, fmt.Errorf("loggerInit: %w", err)
-	}
-	return zl.Sugar(), nil
-}
-
-func initContext() context.Context {
-	log, err := loggerInit()
-	if err != nil {
-		log.Fatal(err)
-	}
-	return context.WithValue(context.Background(), consts.LoggerCtxKey, log)
 }

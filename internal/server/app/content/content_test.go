@@ -1,18 +1,16 @@
 package content
 
 import (
-	"context"
 	"errors"
-	"fmt"
 	"testing"
 
 	"github.com/dmad1989/gophKeeper/pkg/model"
-	"github.com/dmad1989/gophKeeper/pkg/model/consts"
 	"github.com/dmad1989/gophKeeper/pkg/model/enum"
 	"github.com/dmad1989/gophKeeper/pkg/model/errs"
+	"github.com/dmad1989/gophKeeper/test"
 	gomock "github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
-	"go.uber.org/zap"
+	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -20,6 +18,9 @@ var (
 )
 
 func TestNewApp(t *testing.T) {
+	ectx := test.NewContextEmpty()
+	ctx, err := test.NewContextFull()
+	require.NoError(t, err, "TestNewApp.NewContextFull")
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	m := NewMockRepository(ctrl)
@@ -29,7 +30,7 @@ func TestNewApp(t *testing.T) {
 
 	tests := []struct {
 		name  string
-		input context.Context
+		input test.Context
 		exp   expected
 	}{
 		{
@@ -41,7 +42,7 @@ func TestNewApp(t *testing.T) {
 		},
 		{
 			name:  "negative - empty context",
-			input: context.TODO(),
+			input: ectx,
 			exp: expected{
 				err: errs.ErrNoCtxLogger,
 			},
@@ -49,7 +50,7 @@ func TestNewApp(t *testing.T) {
 
 		{
 			name:  "positive",
-			input: initContext(),
+			input: ctx,
 			exp: expected{
 				err: nil,
 			},
@@ -71,7 +72,8 @@ func TestNewApp(t *testing.T) {
 }
 
 func TestSave(t *testing.T) {
-	ctx := initContext()
+	ctx, err := test.NewContextFull()
+	require.NoError(t, err, "TestSave.NewContextFull")
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -233,7 +235,8 @@ func TestSave(t *testing.T) {
 }
 
 func TestUpdate(t *testing.T) {
-	ctx := initContext()
+	ctx, err := test.NewContextFull()
+	require.NoError(t, err, "TestUpdate.NewContextFull")
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -382,7 +385,8 @@ func TestUpdate(t *testing.T) {
 }
 
 func TestDelete(t *testing.T) {
-	ctx := initContext()
+	ctx, err := test.NewContextFull()
+	require.NoError(t, err, "TestDelete.NewContextFull")
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -454,7 +458,8 @@ func TestDelete(t *testing.T) {
 }
 
 func TestGetUserContent(t *testing.T) {
-	ctx := initContext()
+	ctx, err := test.NewContextFull()
+	require.NoError(t, err, "TestGetUserContent.NewContextFull")
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	positiveRes := make([]*model.Content, 1)
@@ -562,7 +567,8 @@ func TestGetUserContent(t *testing.T) {
 }
 
 func TestGet(t *testing.T) {
-	ctx := initContext()
+	ctx, err := test.NewContextFull()
+	require.NoError(t, err, "TestGet.NewContextFull")
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -637,20 +643,4 @@ func TestGet(t *testing.T) {
 			assert.NoError(t, err)
 		})
 	}
-}
-
-func loggerInit() (*zap.SugaredLogger, error) {
-	zl, err := zap.NewProduction()
-	if err != nil {
-		return nil, fmt.Errorf("loggerInit: %w", err)
-	}
-	return zl.Sugar(), nil
-}
-
-func initContext() context.Context {
-	log, err := loggerInit()
-	if err != nil {
-		log.Fatal(err)
-	}
-	return context.WithValue(context.Background(), consts.LoggerCtxKey, log)
 }

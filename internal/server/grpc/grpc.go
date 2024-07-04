@@ -7,7 +7,7 @@ import (
 	"net"
 
 	"github.com/dmad1989/gophKeeper/internal/server/grpc/interceptors"
-	"github.com/dmad1989/gophKeeper/pkg/model/consts"
+	"github.com/dmad1989/gophKeeper/pkg/logging"
 	pb "github.com/dmad1989/gophKeeper/pkg/proto/gen"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -95,7 +95,11 @@ func (sb *ServerBuilder) Build() (*Servers, error) {
 	if err := sb.validate(); err != nil {
 		return nil, fmt.Errorf("ServerBuilder.build: %w", err)
 	}
-	l := sb.ctx.Value(consts.LoggerCtxKey).(*zap.SugaredLogger).Named("grpc")
+
+	l, err := logging.LoggerFromContext(sb.ctx, "grpc")
+	if err != nil {
+		return nil, fmt.Errorf("ServerBuilder.build: LoggerFromContext: %w", err)
+	}
 
 	creds, err := loadTLSCredentials()
 	if err != nil {
