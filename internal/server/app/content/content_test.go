@@ -19,7 +19,7 @@ var (
 	ErrRepoMock = errors.New("any repo problem")
 )
 
-func Test_NewApp(t *testing.T) {
+func TestNewApp(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	m := NewMockRepository(ctrl)
@@ -70,7 +70,7 @@ func Test_NewApp(t *testing.T) {
 	}
 }
 
-func Test_Save(t *testing.T) {
+func TestSave(t *testing.T) {
 	ctx := initContext()
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -232,7 +232,7 @@ func Test_Save(t *testing.T) {
 	}
 }
 
-func Test_Update(t *testing.T) {
+func TestUpdate(t *testing.T) {
 	ctx := initContext()
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -381,7 +381,7 @@ func Test_Update(t *testing.T) {
 	}
 }
 
-func Test_Delete(t *testing.T) {
+func TestDelete(t *testing.T) {
 	ctx := initContext()
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -453,7 +453,7 @@ func Test_Delete(t *testing.T) {
 	}
 }
 
-func Test_GetUserContent(t *testing.T) {
+func TestGetUserContent(t *testing.T) {
 	ctx := initContext()
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -561,7 +561,7 @@ func Test_GetUserContent(t *testing.T) {
 	}
 }
 
-func Test_Get(t *testing.T) {
+func TestGet(t *testing.T) {
 	ctx := initContext()
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()

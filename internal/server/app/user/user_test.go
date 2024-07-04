@@ -14,7 +14,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func Test_NewApp(t *testing.T) {
+func TestNewApp(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	m := NewMockRepository(ctrl)
@@ -65,7 +65,7 @@ func Test_NewApp(t *testing.T) {
 	}
 }
 
-func Test_Register(t *testing.T) {
+func TestRegister(t *testing.T) {
 	ctx := initContext()
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -148,7 +148,7 @@ func Test_Register(t *testing.T) {
 	}
 }
 
-func Test_GetByLogin(t *testing.T) {
+func TestGetByLogin(t *testing.T) {
 	ctx := initContext()
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -204,7 +204,7 @@ func Test_GetByLogin(t *testing.T) {
 	}
 }
 
-func Test_ValidatePassword(t *testing.T) {
+func TestValidatePassword(t *testing.T) {
 	ctx := initContext()
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
