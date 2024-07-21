@@ -34,7 +34,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
+	defer repo.Close(ctx)
 	userApp, err := user.NewApp(ctx, repo)
 	if err != nil {
 		log.Fatal(err)
