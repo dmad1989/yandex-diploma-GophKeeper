@@ -1,7 +1,50 @@
 package main
 
-import "fmt"
+import (
+	"context"
+	"log"
+	"os"
+	"os/signal"
+	"syscall"
+
+	"github.com/dmad1989/gophKeeper/internal/client/app/auth"
+	"github.com/dmad1989/gophKeeper/internal/client/app/content"
+	"github.com/dmad1989/gophKeeper/internal/client/app/crypto"
+	"github.com/dmad1989/gophKeeper/internal/client/cli"
+	"github.com/dmad1989/gophKeeper/internal/client/grpc"
+	"github.com/dmad1989/gophKeeper/internal/config"
+	"github.com/dmad1989/gophKeeper/pkg/logging"
+	"github.com/dmad1989/gophKeeper/pkg/model/client"
+	"github.com/dmad1989/gophKeeper/pkg/model/consts"
+)
 
 func main() {
-	fmt.Println("client is working!")
+	zlog, err := logging.NewLogger("./client.log")
+	if err != nil {
+		log.Fatal(err)
+	}
+	zlog = zlog.Named("client")
+	ctx := context.WithValue(context.Background(), consts.LoggerCtxKey, zlog)
+	defer zlog.Sync()
+
+	cfg, err := config.NewClient(ctx)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	tokenHolder := &client.TokenHolder{}
+
+	conn, err := grpc.NewConnection(ctx, cfg, tokenHolder)
+	if err != nil {
+		log.Fatal(err)
+	}
+	authApp := auth.New(ctx, conn, tokenHolder)
+	cryptoApp := crypto.New(ctx, cfg)
+	contentApp := content.New(ctx, conn, cryptoApp)
+
+	cli := cli.New(ctx, authApp, contentApp)
+	ctx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
+	defer stop()
+	cli.Start(ctx)
+	<-ctx.Done()
 }

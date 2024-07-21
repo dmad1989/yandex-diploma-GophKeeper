@@ -1,0 +1,112 @@
+package interceptors
+
+import (
+	"context"
+	"errors"
+	"fmt"
+
+	"github.com/dmad1989/gophKeeper/pkg/model"
+	"github.com/dmad1989/gophKeeper/pkg/model/consts"
+	"github.com/dmad1989/gophKeeper/pkg/model/errs"
+	"go.uber.org/zap"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
+)
+
+type UserApp interface {
+	ExtractIDFromToken(t string) (int32, error)
+}
+
+type TokenProvider struct {
+	log             *zap.SugaredLogger
+	app             UserApp
+	nonSecureMethod map[string]struct{}
+}
+
+func NewTokenProvider(ctx context.Context, a UserApp, methods ...string) *TokenProvider {
+	l := ctx.Value(consts.LoggerCtxKey).(*zap.SugaredLogger).Named("TokenProvider")
+	m := make(map[string]struct{}, len(methods))
+
+	for _, method := range methods {
+		m[method] = struct{}{}
+	}
+
+	return &TokenProvider{log: l, app: a, nonSecureMethod: m}
+}
+
+func (tp *TokenProvider) isSecureMethod(method string) bool {
+	if _, ok := tp.nonSecureMethod[method]; ok {
+		return true
+	}
+	return false
+}
+
+func (tp *TokenProvider) TokenInterceptor() grpc.UnaryServerInterceptor {
+	return func(
+		ctx context.Context,
+		req interface{},
+		info *grpc.UnaryServerInfo,
+		handler grpc.UnaryHandler,
+	) (resp interface{}, err error) {
+		if !tp.isSecureMethod(info.FullMethod) {
+			userId, err := tp.extractID(ctx)
+			if err != nil {
+				if errors.Is(err, errs.ErrTokenNotFound) {
+					return nil, status.Error(codes.Unauthenticated, errs.ErrTokenNotFound.Error())
+				}
+				return nil, status.Error(codes.Internal, err.Error())
+			}
+
+			ctxWithUserId := context.WithValue(ctx, consts.UserCtxKey, userId)
+			return handler(ctxWithUserId, req)
+		}
+		return handler(ctx, req)
+	}
+}
+
+func (tp *TokenProvider) TokenStreamInterceptor() grpc.StreamServerInterceptor {
+	return func(
+		srv interface{},
+		ss grpc.ServerStream,
+		info *grpc.StreamServerInfo,
+		handler grpc.StreamHandler,
+	) error {
+		if !tp.isSecureMethod(info.FullMethod) {
+			userId, err := tp.extractID(ss.Context())
+			if err != nil {
+				tp.log.Errorw("extract userId from request token", zap.Error(err))
+				if errors.Is(err, errs.ErrTokenNotFound) {
+					return status.Error(codes.Unauthenticated, errs.ErrTokenNotFound.Error())
+				}
+				return status.Error(codes.Internal, err.Error())
+			}
+			ctxWithUserId := context.WithValue(ss.Context(), consts.UserCtxKey, userId)
+			tp.log.Infof("Retrieved from token userId: %d", userId)
+			return handler(srv, &model.ServerStreamWithCtx{
+				ServerStream: ss,
+				Ctx:          ctxWithUserId,
+			})
+		}
+		return handler(srv, ss)
+	}
+}
+
+func (tp *TokenProvider) extractID(ctx context.Context) (int32, error) {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return 0, fmt.Errorf("TokenProvider.extractID: metadata.FromIncomingContext: %w", errs.ErrReadMD)
+	}
+	var tokenStr string
+	if values := md.Get("token"); len(values) == 0 {
+		return 0, fmt.Errorf("TokenProvider.extractID: md.Get: %w", errs.ErrTokenNotFound)
+	} else {
+		tokenStr = values[0]
+	}
+	id, err := tp.app.ExtractIDFromToken(tokenStr)
+	if err != nil {
+		return 0, fmt.Errorf("TokenProvider.extractID: %w", err)
+	}
+	return id, nil
+}

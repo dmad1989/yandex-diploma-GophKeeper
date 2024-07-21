@@ -12,3 +12,5 @@ build_linux_client:
 	 set GOOS=linux 
 	 set GOARCH=amd64 
 	 go build -o ./bin/gophkeeper_linux ${CLIENT}
+build_certs:
+	cd cert; ./gen.sh; cd ..
